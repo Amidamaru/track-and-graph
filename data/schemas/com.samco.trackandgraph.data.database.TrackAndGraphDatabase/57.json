@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 57,
-    "identityHash": "975f20b0b0edc17d165cf9910d303538",
+    "identityHash": "3e0ade55ed50dfd746ff7b36d7afd5f4",
     "entities": [
       {
         "tableName": "features_table",
@@ -81,7 +81,7 @@
       },
       {
         "tableName": "trackers_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `feature_id` INTEGER NOT NULL, `type` INTEGER NOT NULL, `has_default_value` INTEGER NOT NULL, `default_value` REAL NOT NULL, `default_label` TEXT NOT NULL, `suggestion_type` TEXT NOT NULL, `suggestion_order` TEXT NOT NULL, FOREIGN KEY(`feature_id`) REFERENCES `features_table`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `feature_id` INTEGER NOT NULL, `type` INTEGER NOT NULL, `has_default_value` INTEGER NOT NULL, `default_value` REAL NOT NULL, `default_label` TEXT NOT NULL, `suggestion_type` TEXT NOT NULL, `suggestion_order` TEXT NOT NULL, `warning_threshold` REAL NOT NULL DEFAULT -1.0, `error_threshold` REAL NOT NULL DEFAULT -1.0, FOREIGN KEY(`feature_id`) REFERENCES `features_table`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -130,6 +130,20 @@
             "columnName": "suggestion_order",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "warningThreshold",
+            "columnName": "warning_threshold",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "-1.0"
+          },
+          {
+            "fieldPath": "errorThreshold",
+            "columnName": "error_threshold",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "-1.0"
           }
         ],
         "primaryKey": {
@@ -279,8 +293,7 @@
           {
             "fieldPath": "parentGroupId",
             "columnName": "parent_group_id",
-            "affinity": "INTEGER",
-            "notNull": false
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "colorIndex",
@@ -423,8 +436,7 @@
           {
             "fieldPath": "sampleSize",
             "columnName": "duration",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "yRangeType",
@@ -447,8 +459,7 @@
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -528,8 +539,7 @@
           {
             "fieldPath": "sampleSize",
             "columnName": "duration",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "labels",
@@ -540,8 +550,7 @@
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "filterByRange",
@@ -641,14 +650,12 @@
           {
             "fieldPath": "sampleSize",
             "columnName": "duration",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "sumByCount",
@@ -768,8 +775,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_reminders_table_id` ON `${TABLE_NAME}` (`id`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "notes_table",
@@ -810,8 +816,7 @@
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_notes_table_epoch_milli` ON `${TABLE_NAME}` (`epoch_milli`)"
           }
-        ],
-        "foreignKeys": []
+        ]
       },
       {
         "tableName": "line_graph_features_table2",
@@ -969,8 +974,7 @@
           {
             "fieldPath": "sampleSize",
             "columnName": "duration",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "window",
@@ -987,8 +991,7 @@
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -1148,8 +1151,7 @@
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "fromValue",
@@ -1267,14 +1269,12 @@
           {
             "fieldPath": "endDate",
             "columnName": "end_date",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "sampleSize",
             "columnName": "duration",
-            "affinity": "TEXT",
-            "notNull": false
+            "affinity": "TEXT"
           },
           {
             "fieldPath": "yRangeType",
@@ -1666,10 +1666,9 @@
         ]
       }
     ],
-    "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '975f20b0b0edc17d165cf9910d303538')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3e0ade55ed50dfd746ff7b36d7afd5f4')"
     ]
   }
 }

@@ -203,7 +203,9 @@ internal class DataInteractorImpl @Inject constructor(
         defaultLabel: String?,
         featureDescription: String?,
         suggestionType: TrackerSuggestionType?,
-        suggestionOrder: TrackerSuggestionOrder?
+        suggestionOrder: TrackerSuggestionOrder?,
+        warningThreshold: Double?,
+        errorThreshold: Double?
     ) = withContext(io) {
         trackerHelper.updateTracker(
             oldTracker = oldTracker,
@@ -215,7 +217,9 @@ internal class DataInteractorImpl @Inject constructor(
             defaultLabel = defaultLabel,
             featureDescription = featureDescription,
             suggestionType = suggestionType,
-            suggestionOrder = suggestionOrder
+            suggestionOrder = suggestionOrder,
+            warningThreshold = warningThreshold,
+            errorThreshold = errorThreshold
         ).also {
             dataUpdateEvents.emit(DataUpdateType.TrackerUpdated)
         }
@@ -723,7 +727,7 @@ internal class DataInteractorImpl @Inject constructor(
             dao.updateGraphOrStat(graphOrStat.toEntity())
             dao.updateLuaGraph(luaGraph.toLuaGraph().toEntity())
             dao.deleteFeaturesForLuaGraph(luaGraph.id)
-            dao.insertLuaGraphFeatures(luaGraph.features.mapIndexed { idx, it ->
+            dao.insertLuaGraphFeatures(luaGraph.features.map {
                 it.copy(
                     id = 0L,
                     luaGraphId = luaGraph.id

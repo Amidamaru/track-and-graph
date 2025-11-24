@@ -62,7 +62,13 @@ internal data class DisplayTracker(
     val description: String,
 
     @ColumnInfo(name = "start_instant")
-    val timerStartInstant: Instant?
+    val timerStartInstant: Instant?,
+
+    @ColumnInfo(name = "warning_threshold")
+    val warningThreshold: Double,
+
+    @ColumnInfo(name = "error_threshold")
+    val errorThreshold: Double
 ) {
     fun toDto() = DisplayTracker(
         id = id,
@@ -81,6 +87,8 @@ internal data class DisplayTracker(
         },
         displayIndex = displayIndex,
         description = description,
-        timerStartInstant = timerStartInstant
+        timerStartInstant = timerStartInstant,
+        warningThreshold = warningThreshold,
+        errorThreshold = errorThreshold
     )
 }

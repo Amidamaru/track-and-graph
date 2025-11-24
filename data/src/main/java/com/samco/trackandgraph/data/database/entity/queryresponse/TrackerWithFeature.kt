@@ -41,7 +41,13 @@ internal data class TrackerWithFeature(
     val suggestionType: TrackerSuggestionType,
 
     @ColumnInfo(name = "suggestion_order")
-    val suggestionOrder: TrackerSuggestionOrder
+    val suggestionOrder: TrackerSuggestionOrder,
+
+    @ColumnInfo(name = "warning_threshold")
+    val warningThreshold: Double,
+
+    @ColumnInfo(name = "error_threshold")
+    val errorThreshold: Double
 ) {
     fun toFeatureEntity() = Feature(
         id = featureId,

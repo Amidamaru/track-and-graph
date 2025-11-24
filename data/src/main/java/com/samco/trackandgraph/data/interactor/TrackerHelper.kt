@@ -56,7 +56,9 @@ interface TrackerHelper {
         defaultLabel: String?,
         featureDescription: String? = null,
         suggestionType: TrackerSuggestionType?,
-        suggestionOrder: TrackerSuggestionOrder?
+        suggestionOrder: TrackerSuggestionOrder?,
+        warningThreshold: Double? = null,
+        errorThreshold: Double? = null
     )
 
     suspend fun getTrackersByIdsSync(trackerIds: List<Long>): List<Tracker>

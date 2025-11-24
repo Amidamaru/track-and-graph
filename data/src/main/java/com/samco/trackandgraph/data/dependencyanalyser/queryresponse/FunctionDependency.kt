@@ -15,24 +15,16 @@
  *  along with Track & Graph.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.samco.trackandgraph.data.database.dto
+package com.samco.trackandgraph.data.dependencyanalyser.queryresponse
 
-import org.threeten.bp.Instant
-import org.threeten.bp.OffsetDateTime
+import androidx.room.ColumnInfo
 
-data class DisplayTracker(
-    val id: Long,
-    val featureId: Long,
-    val name: String,
-    val groupId: Long,
-    val dataType: DataType = DataType.CONTINUOUS,
-    val hasDefaultValue: Boolean,
-    val defaultValue: Double,
-    val defaultLabel: String,
-    val timestamp: OffsetDateTime?,
-    val displayIndex: Int,
-    val description: String,
-    val timerStartInstant: Instant?,
-    val warningThreshold: Double = -1.0,
-    val errorThreshold: Double = -1.0
+/**
+ * Represents a dependency of a function feature on another feature.
+ */
+data class FunctionDependency(
+    @ColumnInfo(name = "function_feature_id")
+    val functionFeatureId: Long,
+    @ColumnInfo(name = "input_feature_id")
+    val inputFeatureId: Long
 )

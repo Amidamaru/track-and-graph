@@ -177,35 +177,21 @@ internal class DependencyAnalyser private constructor(
          * Fetches all dependency data from the database.
          */
         private suspend fun fetchDependencyData(dao: TrackAndGraphDatabaseDao): DependencyData {
-            val allGraphDependencies = mutableMapOf<Long, Set<Long>>()
+            val allGraphDependencies = mutableMapOf<Long, MutableSet<Long>>()
 
-            // Fetch all single-dependency graphs with unified query
-            dao.getAllSingleDependencyGraphs().forEach { graphDep ->
-                allGraphDependencies[graphDep.graphStatId] = setOf(graphDep.featureId)
-            }
-
-            // Fetch multi-dependency graphs
-            val lineGraphGraphStatIds = dao.getLineGraphGraphStatIds()
-            lineGraphGraphStatIds.forEach { graphStatId ->
-                val featureIds = dao.getLineGraphFeatureIds(graphStatId).toSet()
-                allGraphDependencies[graphStatId] = featureIds
-            }
-
-            val luaGraphGraphStatIds = dao.getLuaGraphGraphStatIds()
-            luaGraphGraphStatIds.forEach { graphStatId ->
-                val featureIds = dao.getLuaGraphFeatureIds(graphStatId).toSet()
-                allGraphDependencies[graphStatId] = featureIds
+            // Fetch all graph dependencies using unified query
+            dao.getAllGraphDependencies().forEach { graphDep ->
+                allGraphDependencies.getOrPut(graphDep.graphStatId) { mutableSetOf() }.add(graphDep.featureId)
             }
 
             // Fetch function dependencies
-            val functionFeatureIds = dao.getFunctionFeatureIds()
-            val functionDependencies = functionFeatureIds.associateWith { functionFeatureId ->
-                dao.getFunctionInputFeatureIds(functionFeatureId).toSet()
-            }
+            val funcDepsMap = dao.getAllFunctionDependencies()
+                .groupBy { it.functionFeatureId }
+                .mapValues { entry -> entry.value.map { it.inputFeatureId }.toSet() }
 
             return DependencyData(
                 graphDependencies = allGraphDependencies,
-                featureDependencies = functionDependencies
+                featureDependencies = funcDepsMap
             )
         }
 

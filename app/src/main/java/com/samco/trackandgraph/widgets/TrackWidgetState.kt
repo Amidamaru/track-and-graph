@@ -20,6 +20,7 @@ package com.samco.trackandgraph.widgets
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.samco.trackandgraph.data.database.dto.DataType
@@ -39,6 +40,8 @@ object TrackWidgetState {
     private val KEY_TIMER_RUNNING = booleanPreferencesKey("timer_running")
     private val KEY_LAST_TIMESTAMP = longPreferencesKey("last_timestamp")
     private val KEY_IS_ENABLED = booleanPreferencesKey("is_enabled")
+    private val KEY_WARNING_THRESHOLD = doublePreferencesKey("warning_threshold")
+    private val KEY_ERROR_THRESHOLD = doublePreferencesKey("error_threshold")
 
     const val WIDGET_PREFS_NAME = "TrackWidget"
     const val DELETE_FEATURE_ID = "DELETE_FEATURE_ID"
@@ -59,7 +62,9 @@ object TrackWidgetState {
             val requireInput: Boolean,
             val isDuration: Boolean,
             val timerRunning: Boolean,
-            val lastTimestampMillis: Long?
+            val lastTimestampMillis: Long?,
+            val warningThreshold: Double,
+            val errorThreshold: Double
         ) : WidgetData()
     }
 
@@ -75,6 +80,8 @@ object TrackWidgetState {
         this[KEY_TIMER_RUNNING] = tracker?.timerStartInstant != null
         this[KEY_LAST_TIMESTAMP] = tracker?.timestamp?.toInstant()?.toEpochMilli() ?: -1L
         this[KEY_IS_ENABLED] = tracker != null
+        this[KEY_WARNING_THRESHOLD] = tracker?.warningThreshold ?: -1.0
+        this[KEY_ERROR_THRESHOLD] = tracker?.errorThreshold ?: -1.0
     }
 
     /**
@@ -92,7 +99,9 @@ object TrackWidgetState {
                 requireInput = prefs[KEY_REQUIRE_INPUT] ?: false,
                 isDuration = prefs[KEY_IS_DURATION] ?: false,
                 timerRunning = prefs[KEY_TIMER_RUNNING] ?: false,
-                lastTimestampMillis = (prefs[KEY_LAST_TIMESTAMP] ?: -1L).let { if (it == -1L) null else it }
+                lastTimestampMillis = (prefs[KEY_LAST_TIMESTAMP] ?: -1L).let { if (it == -1L) null else it },
+                warningThreshold = prefs[KEY_WARNING_THRESHOLD] ?: -1.0,
+                errorThreshold = prefs[KEY_ERROR_THRESHOLD] ?: -1.0
             )
         } else {
             WidgetData.Disabled

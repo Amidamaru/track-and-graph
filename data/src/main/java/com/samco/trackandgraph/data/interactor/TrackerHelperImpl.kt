@@ -102,7 +102,9 @@ internal class TrackerHelperImpl @Inject constructor(
         defaultLabel: String?,
         featureDescription: String?,
         suggestionType: TrackerSuggestionType?,
-        suggestionOrder: TrackerSuggestionOrder?
+        suggestionOrder: TrackerSuggestionOrder?,
+        warningThreshold: Double?,
+        errorThreshold: Double?
     ) = withContext(io) {
         transactionHelper.withTransaction {
             val newDataType = newType ?: oldTracker.dataType
@@ -129,7 +131,9 @@ internal class TrackerHelperImpl @Inject constructor(
                 defaultLabel = defaultLabel ?: oldTracker.defaultLabel,
                 suggestionType = suggestionType?.toEntity() ?: oldTracker.suggestionType.toEntity(),
                 suggestionOrder = suggestionOrder?.toEntity()
-                    ?: oldTracker.suggestionOrder.toEntity()
+                    ?: oldTracker.suggestionOrder.toEntity(),
+                warningThreshold = warningThreshold ?: oldTracker.warningThreshold,
+                errorThreshold = errorThreshold ?: oldTracker.errorThreshold
             )
             dao.updateFeature(newFeature)
             dao.updateTracker(newTracker)

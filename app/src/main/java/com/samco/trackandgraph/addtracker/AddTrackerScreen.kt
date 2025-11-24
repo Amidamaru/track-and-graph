@@ -238,6 +238,10 @@ private fun AdvancedOptions(viewModel: AddTrackerViewModel) = Column {
     AnimatedVisibility(visible = advancedOptionsExpanded) {
         Column {
             DialogInputSpacing()
+            
+            ThresholdInputs(viewModel)
+            
+            DialogInputSpacing()
 
             DefaultValueOptions(viewModel)
 
@@ -253,6 +257,34 @@ private fun AdvancedOptions(viewModel: AddTrackerViewModel) = Column {
             SuggestionOrder(viewModel)
         }
     }
+}
+
+@Composable
+private fun ThresholdInputs(viewModel: AddTrackerViewModel) {
+    val focusManager = LocalFocusManager.current
+    
+    Text(
+        text = "Thresholds (Hours)",
+        style = MaterialTheme.typography.titleSmall
+    )
+    
+    DialogInputSpacing()
+    
+    ValueInputTextField(
+        textFieldValue = viewModel.warningThreshold,
+        onValueChange = viewModel::onWarningThresholdChanged,
+        focusManager = focusManager,
+        label = { Text("Warn Threshold (Yellow)") }
+    )
+    
+    DialogInputSpacing()
+    
+    ValueInputTextField(
+        textFieldValue = viewModel.errorThreshold,
+        onValueChange = viewModel::onErrorThresholdChanged,
+        focusManager = focusManager,
+        label = { Text("Error Threshold (Red)") }
+    )
 }
 
 @Composable
@@ -471,4 +503,3 @@ private fun NameInput(
     focusRequester = focusRequester,
     keyboardController = keyboardController
 )
-

@@ -51,6 +51,8 @@ interface AddTrackerViewModel : DurationInputViewModel {
     val showUpdateWarningAlertDialog: LiveData<Boolean>
     val suggestionType: LiveData<TrackerSuggestionType>
     val suggestionOrder: LiveData<TrackerSuggestionOrder>
+    val warningThreshold: TextFieldValue
+    val errorThreshold: TextFieldValue
     val complete: ReceiveChannel<Unit>
 
     fun init(groupId: Long, existingTrackerId: Long)
@@ -66,6 +68,8 @@ interface AddTrackerViewModel : DurationInputViewModel {
     fun onCreateUpdateClicked()
     fun onSuggestionTypeChanged(suggestionType: TrackerSuggestionType)
     fun onSuggestionOrderChanged(suggestionOrder: TrackerSuggestionOrder)
+    fun onWarningThresholdChanged(value: TextFieldValue)
+    fun onErrorThresholdChanged(value: TextFieldValue)
 }
 
 @HiltViewModel
@@ -100,6 +104,9 @@ class AddTrackerViewModelImpl @Inject constructor(
 
     override val suggestionType = MutableLiveData(TrackerSuggestionType.LABEL_ONLY)
     override val suggestionOrder = MutableLiveData(TrackerSuggestionOrder.LABEL_ASCENDING)
+    
+    override var warningThreshold by mutableStateOf(TextFieldValue("-1"))
+    override var errorThreshold by mutableStateOf(TextFieldValue("-1"))
 
     override fun onTrackerNameChanged(name: TextFieldValue) {
         trackerName = name
@@ -177,6 +184,13 @@ class AddTrackerViewModelImpl @Inject constructor(
         defaultLabel = TextFieldValue(tracker.defaultLabel, TextRange(tracker.defaultLabel.length))
         suggestionType.value = tracker.suggestionType
         suggestionOrder.value = tracker.suggestionOrder
+        
+        val warnStr = if (tracker.warningThreshold == -1.0) "-1" else tracker.warningThreshold.toString()
+        warningThreshold = TextFieldValue(warnStr, TextRange(warnStr.length))
+        
+        val errStr = if (tracker.errorThreshold == -1.0) "-1" else tracker.errorThreshold.toString()
+        errorThreshold = TextFieldValue(errStr, TextRange(errStr.length))
+        
         isUpdateModeFlow.value = true
     }
 
@@ -198,6 +212,14 @@ class AddTrackerViewModelImpl @Inject constructor(
 
     override fun onDurationNumericConversionModeChanged(durationNumericConversionMode: TrackerHelper.DurationNumericConversionMode) {
         this.durationNumericConversionMode.value = durationNumericConversionMode
+    }
+    
+    override fun onWarningThresholdChanged(value: TextFieldValue) {
+        warningThreshold = value.copy(text = value.text.asValidatedDouble())
+    }
+
+    override fun onErrorThresholdChanged(value: TextFieldValue) {
+        errorThreshold = value.copy(text = value.text.asValidatedDouble())
     }
 
     override fun onConfirmUpdate() {
@@ -245,6 +267,9 @@ class AddTrackerViewModelImpl @Inject constructor(
         true -> getDurationAsDouble()
         else -> defaultValue.text.toDoubleOrNull()
     }
+    
+    private fun getWarningThresholdValue() = warningThreshold.text.toDoubleOrNull() ?: -1.0
+    private fun getErrorThresholdValue() = errorThreshold.text.toDoubleOrNull() ?: -1.0
 
     private suspend fun updateTracker(existingTracker: Tracker) {
         dataInteractor.updateTracker(
@@ -257,7 +282,9 @@ class AddTrackerViewModelImpl @Inject constructor(
             featureDescription = trackerDescription.text,
             defaultLabel = defaultLabel.text,
             suggestionType = suggestionType.value,
-            suggestionOrder = suggestionOrder.value
+            suggestionOrder = suggestionOrder.value,
+            warningThreshold = getWarningThresholdValue(),
+            errorThreshold = getErrorThresholdValue()
         )
         timerServiceInteractor.requestWidgetUpdatesForFeatureId(featureId = existingTracker.featureId)
     }
@@ -275,7 +302,9 @@ class AddTrackerViewModelImpl @Inject constructor(
             defaultValue = getDefaultValue() ?: 1.0,
             defaultLabel = defaultLabel.text,
             suggestionType = suggestionType.value ?: TrackerSuggestionType.VALUE_AND_LABEL,
-            suggestionOrder = suggestionOrder.value ?: TrackerSuggestionOrder.VALUE_ASCENDING
+            suggestionOrder = suggestionOrder.value ?: TrackerSuggestionOrder.VALUE_ASCENDING,
+            warningThreshold = getWarningThresholdValue(),
+            errorThreshold = getErrorThresholdValue()
         )
         dataInteractor.insertTracker(tracker)
     }

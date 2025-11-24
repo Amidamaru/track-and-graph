@@ -49,6 +49,7 @@ import com.samco.trackandgraph.data.database.entity.queryresponse.FunctionWithFe
 import com.samco.trackandgraph.data.database.entity.queryresponse.LineGraphWithFeatures
 import com.samco.trackandgraph.data.database.entity.queryresponse.LuaGraphWithFeatures
 import com.samco.trackandgraph.data.database.entity.queryresponse.TrackerWithFeature
+import com.samco.trackandgraph.data.dependencyanalyser.queryresponse.FunctionDependency
 import com.samco.trackandgraph.data.dependencyanalyser.queryresponse.GraphDependency
 import kotlinx.coroutines.flow.Flow
 
@@ -65,7 +66,9 @@ private const val getTrackersQuery = """
         trackers_table.default_value as default_value,
         trackers_table.default_label as default_label,
         trackers_table.suggestion_type as suggestion_type,
-        trackers_table.suggestion_order as suggestion_order
+        trackers_table.suggestion_order as suggestion_order,
+        trackers_table.warning_threshold as warning_threshold,
+        trackers_table.error_threshold as error_threshold
     FROM trackers_table
     LEFT JOIN features_table ON trackers_table.feature_id = features_table.id
             """
@@ -82,6 +85,8 @@ private const val getDisplayTrackersQuery = """
         trackers_table.has_default_value as has_default_value,
         trackers_table.default_value as default_value,
         trackers_table.default_label as default_label,
+        trackers_table.warning_threshold as warning_threshold,
+        trackers_table.error_threshold as error_threshold,
         last_epoch_milli,
         last_utc_offset_sec,
         start_instant 
@@ -102,6 +107,19 @@ private const val getDisplayTrackersQuery = """
             ) as timer_data ON timer_data.feature_id = trackers_table.feature_id
         )
     """
+
+private const val getFunctionsQuery = """
+    SELECT 
+        functions_table.id as id,
+        functions_table.feature_id as feature_id,
+        functions_table.function_graph as function_graph,
+        features_table.name as name,
+        features_table.group_id as group_id,
+        features_table.display_index as display_index,
+        features_table.feature_description as feature_description
+    FROM functions_table
+    LEFT JOIN features_table ON functions_table.feature_id = features_table.id
+            """
 
 @Dao
 internal interface TrackAndGraphDatabaseDao {
@@ -164,7 +182,9 @@ internal interface TrackAndGraphDatabaseDao {
                 trackers_table.default_value as default_value,
                 trackers_table.default_label as default_label,
                 trackers_table.suggestion_order as suggestion_order,
-                trackers_table.suggestion_type as suggestion_type
+                trackers_table.suggestion_type as suggestion_type,
+                trackers_table.warning_threshold AS warning_threshold,
+                trackers_table.error_threshold AS error_threshold
             FROM trackers_table
             LEFT JOIN features_table ON features_table.id = trackers_table.feature_id
             WHERE features_table.group_id = :groupId ORDER BY features_table.display_index ASC
@@ -344,29 +364,35 @@ internal interface TrackAndGraphDatabaseDao {
     @Query("SELECT * FROM groups_table WHERE parent_group_id = :id")
     fun getGroupsForGroupSync(id: Long): List<Group>
 
+    @Query("SELECT * FROM groups_table WHERE parent_group_id IS NULL")
+    fun getGroupsForGroupSync(): List<Group>
+
     @Query("SELECT * FROM groups_table WHERE parent_group_id IS NULL LIMIT 1")
     fun getRootGroupSync(): Group?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertFeatureTimer(featureTimer: FeatureTimer)
-
-    @Query("DELETE FROM feature_timers_table WHERE feature_id=:featureId")
-    fun deleteFeatureTimer(featureId: Long)
-
-    @Query("SELECT * FROM feature_timers_table WHERE feature_id=:featureId LIMIT 1")
-    fun getFeatureTimer(featureId: Long): FeatureTimer?
-
-    @Query("$getDisplayTrackersQuery WHERE start_instant IS NOT NULL ORDER BY start_instant ASC, id DESC")
-    fun getAllActiveTimerTrackers(): List<DisplayTracker>
-
-    @Query("$getDisplayTrackersQuery WHERE trackers_table.feature_id=:featureId LIMIT 1")
-    fun getDisplayTrackerByFeatureIdSync(featureId: Long): DisplayTracker?
+    @Query("$getTrackersQuery WHERE features_table.group_id = :groupId ORDER BY features_table.display_index ASC, id DESC")
+    fun getTrackersForGroupSyncInternal(groupId: Long): List<TrackerWithFeature>
 
     @Query(getTrackersQuery)
     fun getAllTrackersSync(): List<TrackerWithFeature>
 
-    @Query("$getTrackersQuery WHERE trackers_table.id = :trackerId LIMIT 1")
-    fun getTrackerById(trackerId: Long): TrackerWithFeature?
+    @Query("$getTrackersQuery WHERE trackers_table.id = :id LIMIT 1")
+    fun getTrackerById(id: Long): TrackerWithFeature?
+
+    @Query("$getTrackersQuery WHERE trackers_table.feature_id = :featureId LIMIT 1")
+    fun getTrackerByFeatureId(featureId: Long): TrackerWithFeature?
+
+    @Query("$getDisplayTrackersQuery WHERE trackers_table.feature_id = :featureId LIMIT 1")
+    fun getDisplayTrackerByFeatureIdSync(featureId: Long): DisplayTracker?
+
+    @Query("SELECT COUNT(*) FROM trackers_table")
+    fun numTrackers(): Int
+
+    @Query("SELECT COUNT(*) FROM data_points_table")
+    fun hasAtLeastOneDataPoint(): Boolean
+
+    @Query("$getDisplayTrackersQuery WHERE trackers_table.feature_id IN (SELECT feature_id FROM feature_timers_table)")
+    fun getAllActiveTimerTrackers(): List<DisplayTracker>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertTracker(tracker: Tracker): Long
@@ -374,33 +400,23 @@ internal interface TrackAndGraphDatabaseDao {
     @Update
     fun updateTracker(tracker: Tracker)
 
-    @Query("$getTrackersQuery WHERE feature_id = :featureId LIMIT 1")
-    fun getTrackerByFeatureId(featureId: Long): TrackerWithFeature?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertFeatureTimer(timer: FeatureTimer): Long
 
-    @Query("SELECT COUNT(*) FROM trackers_table")
-    fun numTrackers(): Int
+    @Delete
+    fun deleteFeatureTimer(timer: FeatureTimer)
 
-    @Query(
-        """
-            SELECT DISTINCT data_points_table.label 
-            FROM data_points_table 
-            WHERE data_points_table.feature_id = (
-                SELECT trackers_table.feature_id 
-                FROM trackers_table 
-                WHERE trackers_table.id = :trackerId
-            )
-        """
-    )
-    fun getLabelsForTracker(trackerId: Long): List<String>
+    @Query("DELETE FROM feature_timers_table WHERE feature_id = :featureId")
+    fun deleteFeatureTimer(featureId: Long)
 
-    @Query(" SELECT EXISTS ( SELECT 1 FROM data_points_table LIMIT 1 ) ")
-    fun hasAtLeastOneDataPoint(): Boolean
+    @Query("SELECT * FROM feature_timers_table WHERE feature_id = :featureId LIMIT 1")
+    fun getFeatureTimer(featureId: Long): FeatureTimer?
+
+    @Query("SELECT * FROM feature_timers_table")
+    fun getAllFeatureTimers(): List<FeatureTimer>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract fun insertLuaGraph(luaGraph: LuaGraph): Long
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertLuaGraphFeatures(map: List<LuaGraphFeature>)
+    fun insertLuaGraph(luaGraph: LuaGraph): Long
 
     @Update
     fun updateLuaGraph(luaGraph: LuaGraph)
@@ -408,20 +424,63 @@ internal interface TrackAndGraphDatabaseDao {
     @Query("DELETE FROM lua_graph_features_table WHERE lua_graph_id = :luaGraphId")
     fun deleteFeaturesForLuaGraph(luaGraphId: Long)
 
-    @Query("SELECT EXISTS (SELECT 1 FROM lua_graphs_table LIMIT 1)")
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertLuaGraphFeatures(luaGraphFeatures: List<LuaGraphFeature>)
+
+    // Return true if there is at least one Lua graph present in the database
+    @Query("SELECT COUNT(*) > 0 FROM lua_graphs_table")
     fun hasAnyLuaGraphs(): Boolean
 
-    @Query("SELECT EXISTS (SELECT 1 FROM graphs_and_stats_table2 LIMIT 1)")
+    // Return true if there is at least one graph/stat present in the database
+    @Query("SELECT COUNT(*) > 0 FROM graphs_and_stats_table2")
     fun hasAnyGraphs(): Boolean
 
-    @Query("SELECT EXISTS (SELECT 1 FROM features_table LIMIT 1)")
+    // Return true if there is at least one feature present in the database
+    @Query("SELECT COUNT(*) > 0 FROM features_table")
     fun hasAnyFeatures(): Boolean
 
-    @Query("SELECT EXISTS (SELECT 1 FROM groups_table WHERE parent_group_id IS NOT NULL LIMIT 1)")
+    // Return true if there is at least one group present in the database
+    @Query("SELECT COUNT(*) > 0 FROM groups_table")
     fun hasAnyGroups(): Boolean
 
-    @Query("SELECT EXISTS (SELECT 1 FROM reminders_table LIMIT 1)")
+    // Return true if there is at least one reminder present in the database
+    @Query("SELECT COUNT(*) > 0 FROM reminders_table")
     fun hasAnyReminders(): Boolean
+
+    // Return true if there is at least one function present in the database
+    @Query("SELECT COUNT(*) > 0 FROM functions_table")
+    fun hasAnyFunctions(): Boolean
+
+    // Backwards-compatible function accessors used by interactor/helpers
+    @Query("$getFunctionsQuery WHERE functions_table.id = :functionId LIMIT 1")
+    fun getFunctionById(functionId: Long): FunctionWithFeature?
+
+    @Query("SELECT * FROM function_input_features_table WHERE function_id = :functionId")
+    fun getFunctionInputFeaturesSync(functionId: Long): List<FunctionInputFeature>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertFunctionInputFeature(functionInputFeature: FunctionInputFeature): Long
+
+    @Query("DELETE FROM function_input_features_table WHERE function_id = :functionId")
+    fun deleteFunctionInputFeatures(functionId: Long)
+
+    @Query(getFunctionsQuery)
+    fun getAllFunctionsSync(): List<FunctionWithFeature>
+
+    @Query("$getFunctionsQuery WHERE features_table.group_id = :groupId ORDER BY features_table.display_index ASC, id DESC")
+    fun getFunctionsForGroupSync(groupId: Long): List<FunctionWithFeature>
+
+    @Query("$getFunctionsQuery WHERE functions_table.feature_id = :featureId LIMIT 1")
+    fun getFunctionByFeatureId(featureId: Long): FunctionWithFeature?
+
+    @Query(getFunctionsQuery)
+    fun getAllFunctions(): List<FunctionWithFeature>
+
+    @Query("DELETE FROM function_input_features_table WHERE function_id = :functionId")
+    fun deleteInputsForFunction(functionId: Long)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertFunctionInputs(functionInputs: List<FunctionInputFeature>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertFunction(function: Function): Long
@@ -429,111 +488,40 @@ internal interface TrackAndGraphDatabaseDao {
     @Update
     fun updateFunction(function: Function)
 
-    @Query("""
-        SELECT 
-            f.id as id,
-            f.feature_id as feature_id,
-            f.function_graph as function_graph,
-            ft.name as name,
-            ft.group_id as group_id,
-            ft.display_index as display_index,
-            ft.feature_description as feature_description
-        FROM functions_table f
-        INNER JOIN features_table ft ON f.feature_id = ft.id
-        WHERE f.id = :functionId
-        LIMIT 1
-    """)
-    fun getFunctionById(functionId: Long): FunctionWithFeature?
+    @Query("SELECT * FROM trackers_table")
+    fun getAllTrackers(): List<Tracker>
+
+    @Query("SELECT * FROM function_input_features_table WHERE feature_id = :featureId")
+    fun getFunctionInputsForFeature(featureId: Long): List<FunctionInputFeature>
+
+    @Query("SELECT DISTINCT label FROM data_points_table WHERE feature_id IN (SELECT feature_id FROM trackers_table WHERE id = :trackerId) ORDER BY label")
+    fun getLabelsForTracker(trackerId: Long): List<String>
 
     @Query("""
-        SELECT 
-            f.id as id,
-            f.feature_id as feature_id,
-            f.function_graph as function_graph,
-            ft.name as name,
-            ft.group_id as group_id,
-            ft.display_index as display_index,
-            ft.feature_description as feature_description
-        FROM functions_table f
-        INNER JOIN features_table ft ON f.feature_id = ft.id
-        WHERE f.feature_id = :featureId
-        LIMIT 1
-    """)
-    fun getFunctionByFeatureId(featureId: Long): FunctionWithFeature?
-
-    @Query("""
-        SELECT 
-            f.id as id,
-            f.feature_id as feature_id,
-            f.function_graph as function_graph,
-            ft.name as name,
-            ft.group_id as group_id,
-            ft.display_index as display_index,
-            ft.feature_description as feature_description
-        FROM functions_table f
-        INNER JOIN features_table ft ON f.feature_id = ft.id
-        ORDER BY ft.display_index ASC, f.id DESC
-    """)
-    fun getAllFunctionsSync(): List<FunctionWithFeature>
-
-    @Query("""
-        SELECT 
-            f.id as id,
-            f.feature_id as feature_id,
-            f.function_graph as function_graph,
-            ft.name as name,
-            ft.group_id as group_id,
-            ft.display_index as display_index,
-            ft.feature_description as feature_description
-        FROM functions_table f
-        INNER JOIN features_table ft ON f.feature_id = ft.id
-        WHERE ft.group_id = :groupId
-        ORDER BY ft.display_index ASC, f.id DESC
-    """)
-    fun getFunctionsForGroupSync(groupId: Long): List<FunctionWithFeature>
-
-    @Query("SELECT EXISTS (SELECT 1 FROM functions_table LIMIT 1)")
-    fun hasAnyFunctions(): Boolean
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertFunctionInputFeature(functionInputFeature: FunctionInputFeature): Long
-
-    @Query("SELECT * FROM function_input_features_table WHERE function_id = :functionId ORDER BY id ASC")
-    fun getFunctionInputFeaturesSync(functionId: Long): List<FunctionInputFeature>
-
-    @Query("DELETE FROM function_input_features_table WHERE function_id = :functionId")
-    fun deleteFunctionInputFeatures(functionId: Long)
-
-    // Dependency analysis queries - single-dependency graphs unified
-    @Query("""
-        SELECT graph_stat_id, feature_id FROM bar_charts_table
-        UNION ALL
         SELECT graph_stat_id, feature_id FROM pie_charts_table2
-        UNION ALL
-        SELECT graph_stat_id, feature_id FROM average_time_between_stat_table4
-        UNION ALL
+        UNION
         SELECT graph_stat_id, feature_id FROM time_histograms_table
-        UNION ALL
+        UNION
         SELECT graph_stat_id, feature_id FROM last_value_stats_table
+        UNION
+        SELECT graph_stat_id, feature_id FROM bar_charts_table
+        UNION
+        SELECT graph_stat_id, feature_id FROM average_time_between_stat_table4
+        UNION
+        SELECT lg.graph_stat_id, lgf.feature_id 
+        FROM line_graphs_table3 lg 
+        JOIN line_graph_features_table2 lgf ON lg.id = lgf.line_graph_id
+        UNION
+        SELECT lua.graph_stat_id, lf.feature_id
+        FROM lua_graphs_table lua
+        JOIN lua_graph_features_table lf ON lua.id = lf.lua_graph_id
     """)
-    fun getAllSingleDependencyGraphs(): List<GraphDependency>
+    fun getAllGraphDependencies(): List<GraphDependency>
 
-    // Multi-dependency queries split into separate calls
-    @Query("SELECT feature_id FROM functions_table")
-    fun getFunctionFeatureIds(): List<Long>
-
-    @Query("SELECT feature_id FROM function_input_features_table WHERE function_id = (SELECT id FROM functions_table WHERE feature_id = :functionFeatureId)")
-    fun getFunctionInputFeatureIds(functionFeatureId: Long): List<Long>
-
-    @Query("SELECT graph_stat_id FROM line_graphs_table3")
-    fun getLineGraphGraphStatIds(): List<Long>
-
-    @Query("SELECT feature_id FROM line_graph_features_table2 WHERE line_graph_id = (SELECT id FROM line_graphs_table3 WHERE graph_stat_id = :graphStatId)")
-    fun getLineGraphFeatureIds(graphStatId: Long): List<Long>
-
-    @Query("SELECT graph_stat_id FROM lua_graphs_table")
-    fun getLuaGraphGraphStatIds(): List<Long>
-
-    @Query("SELECT feature_id FROM lua_graph_features_table WHERE lua_graph_id = (SELECT id FROM lua_graphs_table WHERE graph_stat_id = :graphStatId)")
-    fun getLuaGraphFeatureIds(graphStatId: Long): List<Long>
+    @Query("""
+        SELECT f.feature_id as function_feature_id, fif.feature_id as input_feature_id
+        FROM function_input_features_table fif
+        JOIN functions_table f ON fif.function_id = f.id
+    """)
+    fun getAllFunctionDependencies(): List<FunctionDependency>
 }

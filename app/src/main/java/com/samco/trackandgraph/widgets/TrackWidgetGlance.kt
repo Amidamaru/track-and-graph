@@ -21,6 +21,7 @@ package com.samco.trackandgraph.widgets
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.Preferences
@@ -53,6 +54,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import org.threeten.bp.Instant
 import org.threeten.bp.Duration
 import java.util.Locale
@@ -233,6 +235,18 @@ private fun EnabledWidgetContent(
         data.lastTimestampMillis?.let { ts ->
             if (ts > 0L) {
                 val rel = formatRelativeTimeGerman(ts)
+                
+                val now = Instant.now()
+                val then = Instant.ofEpochMilli(ts)
+                val duration = Duration.between(then, now)
+                val hours = duration.toMinutes() / 60.0
+                
+                val textColor = when {
+                    data.errorThreshold >= 0 && hours >= data.errorThreshold -> GlanceTheme.colors.error
+                    data.warningThreshold >= 0 && hours >= data.warningThreshold -> ColorProvider(Color.Yellow)
+                    else -> GlanceTheme.colors.onSurface
+                }
+                
                 Box(
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomStart,
@@ -241,7 +255,7 @@ private fun EnabledWidgetContent(
                         text = rel,
                         style = TextStyle(
                             fontSize = ssp(10),
-                            color = GlanceTheme.colors.onSurface
+                            color = textColor
                         ),
                         modifier = GlanceModifier.padding(start = sdp(6), bottom = sdp(6))
                     )
@@ -282,7 +296,9 @@ fun TrackWidgetEnabledPreview() {
                 requireInput = true,
                 isDuration = false,
                 timerRunning = false,
-                lastTimestampMillis = null // Added this
+                lastTimestampMillis = null, // Added this
+                warningThreshold = -1.0,
+                errorThreshold = -1.0
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),
@@ -303,7 +319,9 @@ fun TrackWidgetEnabledWithTimerPreview() {
                 title = "Work Session",
                 isDuration = true,
                 timerRunning = false,
-                lastTimestampMillis = null // Added this
+                lastTimestampMillis = null, // Added this
+                warningThreshold = -1.0,
+                errorThreshold = -1.0
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),
@@ -324,7 +342,9 @@ fun TrackWidgetEnabledTimerRunningPreview() {
                 title = "Work Session",
                 isDuration = true,
                 timerRunning = true,
-                lastTimestampMillis = System.currentTimeMillis() // Added this to test the time display
+                lastTimestampMillis = System.currentTimeMillis(), // Added this to test the time display
+                warningThreshold = -1.0,
+                errorThreshold = -1.0
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),

@@ -72,5 +72,11 @@ internal data class Tracker(
     val suggestionType: TrackerSuggestionType,
 
     @ColumnInfo(name = "suggestion_order")
-    val suggestionOrder: TrackerSuggestionOrder
+    val suggestionOrder: TrackerSuggestionOrder,
+
+    @ColumnInfo(name = "warning_threshold", defaultValue = "-1.0")
+    val warningThreshold: Double = -1.0,
+
+    @ColumnInfo(name = "error_threshold", defaultValue = "-1.0")
+    val errorThreshold: Double = -1.0
 )
