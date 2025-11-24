@@ -53,6 +53,9 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import org.threeten.bp.Instant
+import org.threeten.bp.Duration
+import java.util.Locale
 import com.samco.trackandgraph.R
 import com.samco.trackandgraph.base.service.StartTimerAction
 import com.samco.trackandgraph.base.service.StartTimerAction.Companion.FeatureIdKey
@@ -226,8 +229,46 @@ private fun EnabledWidgetContent(
                 }
             }
         }
+        // Bottom-left: time since last timestamp (if present)
+        data.lastTimestampMillis?.let { ts ->
+            if (ts > 0L) {
+                val rel = formatRelativeTimeGerman(ts)
+                Box(
+                    modifier = GlanceModifier.fillMaxSize(),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    Text(
+                        text = rel,
+                        style = TextStyle(
+                            fontSize = ssp(10),
+                            color = GlanceTheme.colors.onSurface
+                        ),
+                        modifier = GlanceModifier.padding(start = sdp(6), bottom = sdp(6))
+                    )
+                }
+            }
+        }
     }
 }
+
+private fun formatRelativeTimeGerman(epochMillis: Long): String {
+    return try {
+        val then = Instant.ofEpochMilli(epochMillis)
+        val now = Instant.now()
+        val dur = Duration.between(then, now)
+        val days = dur.toDays()
+        val hours = dur.toHours() % 24
+
+        if (days > 0) {
+            "${days}d ${hours}h"
+        } else {
+            "${hours}h"
+        }
+    } catch (e: Exception) {
+        ""
+    }
+}
+
 
 @Preview(widthDp = 200, heightDp = 100)
 @Composable
@@ -240,7 +281,8 @@ fun TrackWidgetEnabledPreview() {
                 title = "Daily Steps",
                 requireInput = true,
                 isDuration = false,
-                timerRunning = false
+                timerRunning = false,
+                lastTimestampMillis = null // Added this
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),
@@ -260,7 +302,8 @@ fun TrackWidgetEnabledWithTimerPreview() {
                 requireInput = false,
                 title = "Work Session",
                 isDuration = true,
-                timerRunning = false
+                timerRunning = false,
+                lastTimestampMillis = null // Added this
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),
@@ -280,7 +323,8 @@ fun TrackWidgetEnabledTimerRunningPreview() {
                 requireInput = false,
                 title = "Work Session",
                 isDuration = true,
-                timerRunning = true
+                timerRunning = true,
+                lastTimestampMillis = System.currentTimeMillis() // Added this to test the time display
             ),
             onWidgetClick = emptyAction(),
             onStartTimer = emptyAction(),

@@ -37,6 +37,7 @@ object TrackWidgetState {
     private val KEY_REQUIRE_INPUT = booleanPreferencesKey("require_input")
     private val KEY_IS_DURATION = booleanPreferencesKey("is_duration")
     private val KEY_TIMER_RUNNING = booleanPreferencesKey("timer_running")
+    private val KEY_LAST_TIMESTAMP = longPreferencesKey("last_timestamp")
     private val KEY_IS_ENABLED = booleanPreferencesKey("is_enabled")
 
     const val WIDGET_PREFS_NAME = "TrackWidget"
@@ -57,7 +58,8 @@ object TrackWidgetState {
             val title: String,
             val requireInput: Boolean,
             val isDuration: Boolean,
-            val timerRunning: Boolean
+            val timerRunning: Boolean,
+            val lastTimestampMillis: Long?
         ) : WidgetData()
     }
 
@@ -71,6 +73,7 @@ object TrackWidgetState {
         this[KEY_REQUIRE_INPUT] = tracker?.hasDefaultValue?.not() ?: true
         this[KEY_IS_DURATION] = tracker?.dataType == DataType.DURATION
         this[KEY_TIMER_RUNNING] = tracker?.timerStartInstant != null
+        this[KEY_LAST_TIMESTAMP] = tracker?.timestamp?.toInstant()?.toEpochMilli() ?: -1L
         this[KEY_IS_ENABLED] = tracker != null
     }
 
@@ -88,7 +91,8 @@ object TrackWidgetState {
                 title = prefs[KEY_TITLE] ?: "",
                 requireInput = prefs[KEY_REQUIRE_INPUT] ?: false,
                 isDuration = prefs[KEY_IS_DURATION] ?: false,
-                timerRunning = prefs[KEY_TIMER_RUNNING] ?: false
+                timerRunning = prefs[KEY_TIMER_RUNNING] ?: false,
+                lastTimestampMillis = (prefs[KEY_LAST_TIMESTAMP] ?: -1L).let { if (it == -1L) null else it }
             )
         } else {
             WidgetData.Disabled
