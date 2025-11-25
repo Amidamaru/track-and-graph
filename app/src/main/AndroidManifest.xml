@@ -120,6 +120,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".widgets.TrackWidgetSettingsActivity"
+            android:exported="false"
+            android:label="Widget Settings"
+            android:theme="@style/TransparentTheme"
+            />
+
         <receiver
             android:name=".reminders.AlarmReceiver"
             android:exported="false"

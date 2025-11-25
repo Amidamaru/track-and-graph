@@ -38,6 +38,7 @@ import androidx.glance.appwidget.updateAll
 import com.samco.trackandgraph.data.interactor.DataInteractor
 import com.samco.trackandgraph.timers.TimerServiceInteractor
 import com.samco.trackandgraph.widgets.TrackWidgetGlance
+import com.samco.trackandgraph.widgets.TrackWidgetState
 import com.samco.trackandgraph.widgets.TrackWidgetState.DELETE_FEATURE_ID
 import com.samco.trackandgraph.widgets.TrackWidgetState.UPDATE_FEATURE_ID
 import com.samco.trackandgraph.widgets.TrackWidgetState.WIDGET_PREFS_NAME
@@ -94,17 +95,21 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
         }
     }
 
+
     private suspend fun updateWidgetState(
         context: Context,
         glanceId: GlanceId,
         appWidgetId: Int,
     ) {
-        val featureId = context.getSharedPreferences(WIDGET_PREFS_NAME, Context.MODE_PRIVATE)
-            .getLong(getFeatureIdPref(appWidgetId), -1L)
+        val sharedPrefs = context.getSharedPreferences(WIDGET_PREFS_NAME, Context.MODE_PRIVATE)
+        val featureId = sharedPrefs.getLong(getFeatureIdPref(appWidgetId), -1L)
+        val transparency = sharedPrefs.getFloat("widget_transparency_$appWidgetId", 1.0f).toDouble()
+
         updateWidgetState(
             context = context,
             glanceId = glanceId,
             featureId = featureId,
+            transparency = transparency
         )
     }
 
@@ -115,17 +120,20 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
         context: Context,
         glanceId: GlanceId,
         featureId: Long,
+        transparency: Double = 1.0,
     ) {
         val tracker = if (featureId != -1L) {
             try {
                 dataInteractor.tryGetDisplayTrackerByFeatureIdSync(featureId)
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         } else null
 
         updateAppWidgetState(context, glanceId) { prefs ->
             prefs.updateFromTracker(featureId, tracker)
+            // Speichere auch Transparenz in DataStore
+            prefs[TrackWidgetState.KEY_TRANSPARENCY] = transparency
         }
     }
 
@@ -143,7 +151,7 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
                     .getLong(getFeatureIdPref(appWidgetId), -1L)
                 if (widgetFeatureId == featureId) {
                     val glanceId = glanceManager.getGlanceIdBy(appWidgetId)
-                    updateWidgetState(context, glanceId, featureId)
+                    updateWidgetState(context, glanceId, appWidgetId)
                 }
             }
             glanceAppWidget.updateAll(context)

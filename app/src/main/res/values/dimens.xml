@@ -16,7 +16,7 @@
   -->
 <resources>
     <dimen name="card_margin_small">4dp</dimen>
-    <dimen name="card_corner_radius">4dp</dimen>
+    <dimen name="card_corner_radius">16dp</dimen>
     <dimen name="graph_height">220dp</dimen>
     <dimen name="line_graph_line_thickness">2dp</dimen>
     <dimen name="line_graph_vertex_thickness">6dp</dimen>

@@ -42,7 +42,7 @@ object TrackWidgetState {
     private val KEY_IS_ENABLED = booleanPreferencesKey("is_enabled")
     private val KEY_WARNING_THRESHOLD = doublePreferencesKey("warning_threshold")
     private val KEY_ERROR_THRESHOLD = doublePreferencesKey("error_threshold")
-    private val KEY_TRANSPARENCY = doublePreferencesKey("transparency")
+    val KEY_TRANSPARENCY = doublePreferencesKey("transparency")
 
     const val WIDGET_PREFS_NAME = "TrackWidget"
     const val DELETE_FEATURE_ID = "DELETE_FEATURE_ID"

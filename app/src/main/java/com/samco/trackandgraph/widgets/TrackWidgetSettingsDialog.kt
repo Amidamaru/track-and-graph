@@ -35,8 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun TrackWidgetConfigureDialog(
-    onConfigurationComplete: (Double) -> Unit,
+fun TrackWidgetSettingsDialog(
+    appWidgetId: Int = -1,
+    onTransparencyChanged: (Double) -> Unit,
     onDismissRequest: () -> Unit
 ) {
     val transparency = remember { mutableStateOf(1.0f) }
@@ -87,12 +88,12 @@ fun TrackWidgetConfigureDialog(
             )
 
             Button(
-                onClick = { onConfigurationComplete(transparency.value.toDouble()) },
+                onClick = { onTransparencyChanged(transparency.value.toDouble()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             ) {
-                Text("Erstellen")
+                Text("Speichern")
             }
 
             Button(
