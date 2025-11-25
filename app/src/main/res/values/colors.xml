@@ -18,7 +18,7 @@
 <resources>
     <!--Widget card colors-->
     <color name="light_blue">#74add1</color>
-    <color name="faded_light_blue">#88aabf</color>
+    <color name="faded_light_blue">#80ADD8E6</color>
     <color name="white">#FFFFFF</color>
     <color name="mid_charcoal">#222222</color>
     

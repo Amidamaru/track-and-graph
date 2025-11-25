@@ -44,6 +44,7 @@ import com.samco.trackandgraph.widgets.TrackWidgetState.UPDATE_FEATURE_ID
 import com.samco.trackandgraph.widgets.TrackWidgetState.WIDGET_PREFS_NAME
 import com.samco.trackandgraph.widgets.TrackWidgetState.getFeatureIdPref
 import com.samco.trackandgraph.widgets.TrackWidgetState.updateFromTracker
+import com.samco.trackandgraph.widgets.WidgetTransparencyManager
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.AndroidEntryPoint
@@ -103,7 +104,9 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
     ) {
         val sharedPrefs = context.getSharedPreferences(WIDGET_PREFS_NAME, Context.MODE_PRIVATE)
         val featureId = sharedPrefs.getLong(getFeatureIdPref(appWidgetId), -1L)
-        val transparency = sharedPrefs.getFloat("widget_transparency_$appWidgetId", 1.0f).toDouble()
+        // Nutze WidgetTransparencyManager um die richtige Transparenz zu laden
+        // (widget-spezifisch oder global)
+        val transparency = WidgetTransparencyManager.getWidgetTransparency(context, appWidgetId).toDouble()
 
         updateWidgetState(
             context = context,

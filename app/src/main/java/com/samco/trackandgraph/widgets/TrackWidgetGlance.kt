@@ -208,7 +208,7 @@ private fun EnabledWidgetContent(
                                 fontSize = ssp(WIDGET_TITLE_SIZE),
                                 color = timeColor
                             ),
-                            modifier = GlanceModifier.padding(top = sdp(2))
+                            modifier = GlanceModifier.padding(top = sdp(0))
                         )
                     }
                 }

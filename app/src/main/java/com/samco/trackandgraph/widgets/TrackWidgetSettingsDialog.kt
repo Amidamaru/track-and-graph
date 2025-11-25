@@ -37,10 +37,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TrackWidgetSettingsDialog(
     appWidgetId: Int = -1,
+    currentTransparency: Double = 1.0,
     onTransparencyChanged: (Double) -> Unit,
     onDismissRequest: () -> Unit
 ) {
-    val transparency = remember { mutableStateOf(1.0f) }
+    val transparency = remember { mutableStateOf(currentTransparency.toFloat()) }
     val transparencyPercent = (transparency.value * 100).toInt()
 
     Box(

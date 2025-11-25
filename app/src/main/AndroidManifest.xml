@@ -108,24 +108,14 @@
             android:theme="@style/TransparentTheme"
             />
 
-        <activity
-            android:name=".widgets.TrackWidgetConfigureActivity"
-            android:exported="true"
-            android:label="Configure widget"
-            android:theme="@style/TransparentTheme"
-            >
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-                <action android:name="android.appwidget.action.ACTION_APPWIDGET_DELETED" />
-            </intent-filter>
-        </activity>
 
         <activity
-            android:name=".widgets.TrackWidgetSettingsActivity"
+            android:name=".widgets.TrackWidgetReconfigureActivity"
             android:exported="false"
             android:label="Widget Settings"
             android:theme="@style/TransparentTheme"
             />
+
 
         <receiver
             android:name=".reminders.AlarmReceiver"

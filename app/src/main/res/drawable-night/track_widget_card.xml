@@ -23,10 +23,9 @@
             <corners android:radius="@dimen/card_corner_radius" />
         </shape>
     </item>
-    <!-- Background -->
     <item>
         <shape>
-            <solid android:color="@color/mid_charcoal" />
+            <solid android:color="#80000000" />
             <corners android:radius="@dimen/card_corner_radius" />
         </shape>
     </item>
