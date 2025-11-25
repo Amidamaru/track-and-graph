@@ -42,12 +42,16 @@ object TrackWidgetState {
     private val KEY_IS_ENABLED = booleanPreferencesKey("is_enabled")
     private val KEY_WARNING_THRESHOLD = doublePreferencesKey("warning_threshold")
     private val KEY_ERROR_THRESHOLD = doublePreferencesKey("error_threshold")
+    private val KEY_TRANSPARENCY = doublePreferencesKey("transparency")
 
     const val WIDGET_PREFS_NAME = "TrackWidget"
     const val DELETE_FEATURE_ID = "DELETE_FEATURE_ID"
     const val UPDATE_FEATURE_ID = "UPDATE_FEATURE_ID"
 
     fun getFeatureIdPref(appWidgetId: Int) = "widget_feature_id_$appWidgetId"
+
+    // Hilfsfunktionen für Transparenz-Speicherung
+    fun getTransparencyPref(appWidgetId: Int) = "widget_transparency_$appWidgetId"
 
     /**
      * Widget data structure representing the state of a track widget for display
@@ -64,7 +68,8 @@ object TrackWidgetState {
             val timerRunning: Boolean,
             val lastTimestampMillis: Long?,
             val warningThreshold: Double,
-            val errorThreshold: Double
+            val errorThreshold: Double,
+            val transparency: Double = 1.0  // 0.0 = transparent, 1.0 = opaque
         ) : WidgetData()
     }
 
@@ -82,6 +87,7 @@ object TrackWidgetState {
         this[KEY_IS_ENABLED] = tracker != null
         this[KEY_WARNING_THRESHOLD] = tracker?.warningThreshold ?: -1.0
         this[KEY_ERROR_THRESHOLD] = tracker?.errorThreshold ?: -1.0
+        // Note: transparency is not updated here, it persists from user settings
     }
 
     /**
@@ -101,7 +107,8 @@ object TrackWidgetState {
                 timerRunning = prefs[KEY_TIMER_RUNNING] ?: false,
                 lastTimestampMillis = (prefs[KEY_LAST_TIMESTAMP] ?: -1L).let { if (it == -1L) null else it },
                 warningThreshold = prefs[KEY_WARNING_THRESHOLD] ?: -1.0,
-                errorThreshold = prefs[KEY_ERROR_THRESHOLD] ?: -1.0
+                errorThreshold = prefs[KEY_ERROR_THRESHOLD] ?: -1.0,
+                transparency = prefs[KEY_TRANSPARENCY] ?: 1.0
             )
         } else {
             WidgetData.Disabled

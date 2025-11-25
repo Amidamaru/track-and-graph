@@ -162,30 +162,53 @@ private fun EnabledWidgetContent(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.track_widget_card))
-            // There is a 4dp inset on the end and bottom of the widget card
             .padding(end = 4.dp, bottom = 4.dp)
             .clickable(onWidgetClick),
     ) {
-        Box(
-            modifier = GlanceModifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Title
-            Text(
-                text = data.title,
-                style = TextStyle(
-                    fontSize = ssp(WIDGET_TITLE_SIZE),
-                    fontWeight = FontWeight.Bold,
-                    color = GlanceTheme.colors.onSurface,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = GlanceModifier
-                    .padding(
-                        start = sdp(8),
-                        end = sdp(8),
-                        bottom = sdp(WIDGET_ICON_SIZE / 2),
-                    )
-            )
+    Box(
+        modifier = GlanceModifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+            Column(
+                modifier = GlanceModifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Title with color based on thresholds
+                val titleColor = calculateTitleColor(data, data.transparency)
+
+                Text(
+                    text = data.title,
+                    style = TextStyle(
+                        fontSize = ssp(WIDGET_TITLE_SIZE),
+                        fontWeight = FontWeight.Bold,
+                        color = titleColor,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = GlanceModifier
+                        .padding(
+                            start = sdp(8),
+                            end = sdp(8),
+                        )
+                )
+
+                // Time display below title (if present)
+                data.lastTimestampMillis?.let { ts ->
+                    if (ts > 0L) {
+                        val rel = formatRelativeTimeGerman(ts)
+                        val timeColor = calculateTitleColor(data, data.transparency)
+
+                        Text(
+                            text = rel,
+                            style = TextStyle(
+                                fontSize = ssp(WIDGET_TITLE_SIZE),
+                                color = timeColor
+                            ),
+                            modifier = GlanceModifier.padding(top = sdp(2))
+                        )
+                    }
+                }
+            }
         }
 
         Box(
@@ -231,37 +254,6 @@ private fun EnabledWidgetContent(
                 }
             }
         }
-        // Bottom-left: time since last timestamp (if present)
-        data.lastTimestampMillis?.let { ts ->
-            if (ts > 0L) {
-                val rel = formatRelativeTimeGerman(ts)
-                
-                val now = Instant.now()
-                val then = Instant.ofEpochMilli(ts)
-                val duration = Duration.between(then, now)
-                val hours = duration.toMinutes() / 60.0
-                
-                val textColor = when {
-                    data.errorThreshold >= 0 && hours >= data.errorThreshold -> GlanceTheme.colors.error
-                    data.warningThreshold >= 0 && hours >= data.warningThreshold -> ColorProvider(Color.Yellow)
-                    else -> GlanceTheme.colors.onSurface
-                }
-                
-                Box(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    contentAlignment = Alignment.BottomStart,
-                ) {
-                    Text(
-                        text = rel,
-                        style = TextStyle(
-                            fontSize = ssp(10),
-                            color = textColor
-                        ),
-                        modifier = GlanceModifier.padding(start = sdp(6), bottom = sdp(6))
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -281,6 +273,28 @@ private fun formatRelativeTimeGerman(epochMillis: Long): String {
     } catch (e: Exception) {
         ""
     }
+}
+
+@Composable
+private fun calculateTitleColor(data: TrackWidgetState.WidgetData.Enabled, transparency: Double): ColorProvider {
+    return data.lastTimestampMillis?.let { ts ->
+        if (ts > 0L) {
+            val now = Instant.now()
+            val then = Instant.ofEpochMilli(ts)
+            val duration = Duration.between(then, now)
+            val hours = duration.toMinutes() / 60.0
+
+            val alpha = (transparency).toFloat().coerceIn(0f, 1f)
+
+            when {
+                data.errorThreshold >= 0 && hours >= data.errorThreshold -> GlanceTheme.colors.error
+                data.warningThreshold >= 0 && hours >= data.warningThreshold -> ColorProvider(Color.Yellow.copy(alpha = alpha))
+                else -> GlanceTheme.colors.onSurface
+            }
+        } else {
+            GlanceTheme.colors.onSurface
+        }
+    } ?: GlanceTheme.colors.onSurface
 }
 
 
