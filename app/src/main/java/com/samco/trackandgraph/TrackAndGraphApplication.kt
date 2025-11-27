@@ -17,6 +17,9 @@
 package com.samco.trackandgraph
 
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.jakewharton.threetenabp.AndroidThreeTen
@@ -27,6 +30,11 @@ import javax.inject.Inject
 @HiltAndroidApp
 class TrackAndGraphApplication : Application(), Configuration.Provider {
 
+    companion object {
+        const val NOTIFICATION_CHANNEL_ID = "tracker_thresholds"
+        const val NOTIFICATION_CHANNEL_NAME = "Tracker Schwellenwert-Benachrichtigungen"
+    }
+
     @Inject
     lateinit var hiltWorkerFactory: HiltWorkerFactory
 
@@ -34,6 +42,23 @@ class TrackAndGraphApplication : Application(), Configuration.Provider {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
         AndroidThreeTen.init(this)
+        createNotificationChannels()
+    }
+
+    private fun createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(NotificationManager::class.java)
+
+            val channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                NOTIFICATION_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Benachrichtigungen, wenn Tracker-Schwellenwerte überschritten werden"
+            }
+
+            notificationManager?.createNotificationChannel(channel)
+        }
     }
 
     override val workManagerConfiguration: Configuration by lazy {

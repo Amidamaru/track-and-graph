@@ -36,6 +36,8 @@ import com.samco.trackandgraph.data.lua.GuardedLuaEngineWrapper
 import com.samco.trackandgraph.data.lua.LuaEngine
 import com.samco.trackandgraph.data.lua.apiimpl.ModuleLoadInterceptor
 import com.samco.trackandgraph.data.lua.apiimpl.NoOpModuleLoadInterceptorImpl
+import com.samco.trackandgraph.data.notifications.NotificationService
+import com.samco.trackandgraph.data.notifications.NotificationServiceImpl
 import com.samco.trackandgraph.data.sampling.DataSampler
 import com.samco.trackandgraph.data.sampling.DataSamplerImpl
 import com.samco.trackandgraph.data.time.TimeProvider
@@ -92,4 +94,9 @@ class DataModule {
 
     @Provides
     internal fun getModuleLoadInterceptor(): ModuleLoadInterceptor = NoOpModuleLoadInterceptorImpl()
+
+    @Provides
+    internal fun getNotificationService(
+        @ApplicationContext context: Context
+    ): NotificationService = NotificationServiceImpl(context)
 }

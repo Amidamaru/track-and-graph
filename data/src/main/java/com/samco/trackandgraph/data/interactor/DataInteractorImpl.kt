@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.threeten.bp.Duration
 import org.threeten.bp.OffsetDateTime
+import com.samco.trackandgraph.data.notifications.NotificationService
 import javax.inject.Inject
 
 internal class DataInteractorImpl @Inject constructor(
@@ -63,6 +64,7 @@ internal class DataInteractorImpl @Inject constructor(
     private val trackerHelper: TrackerHelper,
     private val functionHelper: FunctionHelper,
     private val dependencyAnalyserProvider: DependencyAnalyserProvider,
+    private val notificationService: NotificationService,
 ) : DataInteractor, TrackerHelper by trackerHelper, FunctionHelper by functionHelper {
 
     private val dataUpdateEvents = MutableSharedFlow<DataUpdateType>(
@@ -302,6 +304,13 @@ internal class DataInteractorImpl @Inject constructor(
 
     override suspend fun insertDataPoint(dataPoint: DataPoint): Long = withContext(io) {
         dao.insertDataPoint(dataPoint.toEntity()).also {
+            // Check for threshold notifications
+            val tracker = dao.getTrackerByFeatureId(dataPoint.featureId)
+            if (tracker != null) {
+                val trackerDto = Tracker.fromTrackerWithFeature(tracker)
+                notificationService.checkAndNotifyThreshold(dataPoint, trackerDto)
+            }
+
             dataUpdateEvents.emit(DataUpdateType.DataPoint(dataPoint.featureId))
             val graphsNeedingUpdate = dependencyAnalyserProvider.create()
                 .getDependentGraphs(dataPoint.featureId)
@@ -314,6 +323,15 @@ internal class DataInteractorImpl @Inject constructor(
     override suspend fun insertDataPoints(dataPoints: List<DataPoint>) = withContext(io) {
         if (dataPoints.isEmpty()) return@withContext
         dao.insertDataPoints(dataPoints.map { it.toEntity() }).also {
+            // Check for threshold notifications for all data points
+            for (dataPoint in dataPoints) {
+                val tracker = dao.getTrackerByFeatureId(dataPoint.featureId)
+                if (tracker != null) {
+                    val trackerDto = Tracker.fromTrackerWithFeature(tracker)
+                    notificationService.checkAndNotifyThreshold(dataPoint, trackerDto)
+                }
+            }
+
             dataUpdateEvents.emit(DataUpdateType.DataPoint(dataPoints.first().featureId))
             val depProvider = dependencyAnalyserProvider.create()
             val affectedGraphs = dataPoints.fold(emptySet<Long>()) { acc, dataPoint ->
