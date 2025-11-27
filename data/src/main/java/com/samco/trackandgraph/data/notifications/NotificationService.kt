@@ -38,9 +38,7 @@ class NotificationServiceImpl @Inject constructor(
 ) : NotificationService {
 
     companion object {
-        // Diese Konstanten MÜSSEN mit den Werten in TrackAndGraphApplication.kt übereinstimmen
         const val NOTIFICATION_CHANNEL_ID = "tracker_thresholds"
-        const val NOTIFICATION_CHANNEL_NAME = "Tracker Schwellenwert-Benachrichtigungen"
         internal const val ERROR_THRESHOLD_BASE_ID = 10000
         internal const val WARNING_THRESHOLD_BASE_ID = 20000
     }
@@ -83,7 +81,7 @@ class NotificationServiceImpl @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Timber.e(e, "Error checking thresholds for tracker: ${tracker.name}")
+            Timber.e(e, "Error checking thresholds for tracker: ${'$'}{tracker.name}")
         }
     }
 
@@ -103,18 +101,24 @@ class NotificationServiceImpl @Inject constructor(
     ) {
         val notificationId = (ERROR_THRESHOLD_BASE_ID + tracker.id).toInt()
         val timeStr = formatTimestamp(dataPoint)
-        val contentText = "${tracker.name} • $timeStr"
-
+        val title = (tracker.notificationTitleTemplate ?: "Fehler-Schwelle überschritten")
+            .replace("{{name}}", tracker.name)
+            .replace("{{value}}", dataPoint.value.toString())
+            .replace("{{time}}", timeStr)
+        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nFehler-Schwelle: {{errorThreshold}}"
+        val body = bodyTemplate
+            .replace("{{name}}", tracker.name)
+            .replace("{{value}}", dataPoint.value.toString())
+            .replace("{{time}}", timeStr)
+            .replace("{{errorThreshold}}", tracker.errorThreshold.toString())
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("⚠️ Fehler-Schwelle überschritten")
-            .setContentText(contentText)
+            .setSmallIcon(context.applicationInfo.icon) // Entfernt Warn-Dreieck, nimmt App-Icon
+            .setContentTitle(title)
+            .setContentText("${tracker.name} • $timeStr")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Tracker: ${tracker.name}\nZeit: $timeStr\nWert: ${dataPoint.value}\nFehler-Schwelle: ${tracker.errorThreshold}"))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .build()
-
         notificationManager.notify(notificationId, notification)
     }
 
@@ -125,19 +129,24 @@ class NotificationServiceImpl @Inject constructor(
     ) {
         val notificationId = (WARNING_THRESHOLD_BASE_ID + tracker.id).toInt()
         val timeStr = formatTimestamp(dataPoint)
-        val contentText = "${tracker.name} • $timeStr"
-
+        val title = (tracker.notificationTitleTemplate ?: "Warn-Schwelle überschritten")
+            .replace("{{name}}", tracker.name)
+            .replace("{{value}}", dataPoint.value.toString())
+            .replace("{{time}}", timeStr)
+        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nWarn-Schwelle: {{warningThreshold}}"
+        val body = bodyTemplate
+            .replace("{{name}}", tracker.name)
+            .replace("{{value}}", dataPoint.value.toString())
+            .replace("{{time}}", timeStr)
+            .replace("{{warningThreshold}}", tracker.warningThreshold.toString())
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("⚠️ Warn-Schwelle überschritten")
-            .setContentText(contentText)
+            .setSmallIcon(context.applicationInfo.icon)
+            .setContentTitle(title)
+            .setContentText("${tracker.name} • $timeStr")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Tracker: ${tracker.name}\nZeit: $timeStr\nWert: ${dataPoint.value}\nWarn-Schwelle: ${tracker.warningThreshold}"))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .build()
-
         notificationManager.notify(notificationId, notification)
     }
 }
-

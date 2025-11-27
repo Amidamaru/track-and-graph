@@ -222,9 +222,57 @@ internal class DataInteractorImpl @Inject constructor(
             suggestionOrder = suggestionOrder,
             warningThreshold = warningThreshold,
             errorThreshold = errorThreshold
-        ).also {
-            dataUpdateEvents.emit(DataUpdateType.TrackerUpdated)
+        )
+        dataUpdateEvents.emit(DataUpdateType.TrackerUpdated)
+    }
+
+    override suspend fun updateTracker(
+        oldTracker: Tracker,
+        durationNumericConversionMode: TrackerHelper.DurationNumericConversionMode?,
+        newName: String?,
+        newType: DataType?,
+        hasDefaultValue: Boolean?,
+        defaultValue: Double?,
+        defaultLabel: String?,
+        featureDescription: String?,
+        suggestionType: TrackerSuggestionType?,
+        suggestionOrder: TrackerSuggestionOrder?,
+        warningThreshold: Double?,
+        errorThreshold: Double?,
+        notificationTitleTemplate: String?,
+        notificationBodyTemplate: String?
+    ) = withContext(io) {
+        trackerHelper.updateTracker(
+            oldTracker = oldTracker,
+            durationNumericConversionMode = durationNumericConversionMode,
+            newName = newName,
+            newType = newType,
+            hasDefaultValue = hasDefaultValue,
+            defaultValue = defaultValue,
+            defaultLabel = defaultLabel,
+            featureDescription = featureDescription,
+            suggestionType = suggestionType,
+            suggestionOrder = suggestionOrder,
+            warningThreshold = warningThreshold,
+            errorThreshold = errorThreshold
+        )
+        if (notificationTitleTemplate != null || notificationBodyTemplate != null) {
+            val updated = oldTracker.copy(
+                name = newName ?: oldTracker.name,
+                dataType = newType ?: oldTracker.dataType,
+                hasDefaultValue = hasDefaultValue ?: oldTracker.hasDefaultValue,
+                defaultValue = defaultValue ?: oldTracker.defaultValue,
+                defaultLabel = defaultLabel ?: oldTracker.defaultLabel,
+                suggestionType = suggestionType ?: oldTracker.suggestionType,
+                suggestionOrder = suggestionOrder ?: oldTracker.suggestionOrder,
+                warningThreshold = warningThreshold ?: oldTracker.warningThreshold,
+                errorThreshold = errorThreshold ?: oldTracker.errorThreshold,
+                notificationTitleTemplate = notificationTitleTemplate ?: oldTracker.notificationTitleTemplate,
+                notificationBodyTemplate = notificationBodyTemplate ?: oldTracker.notificationBodyTemplate
+            )
+            trackerHelper.updateTracker(updated)
         }
+        dataUpdateEvents.emit(DataUpdateType.TrackerUpdated)
     }
 
     override suspend fun updateDataPoints(

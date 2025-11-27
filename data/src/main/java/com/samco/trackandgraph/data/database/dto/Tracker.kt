@@ -34,6 +34,8 @@ data class Tracker(
     val suggestionOrder: TrackerSuggestionOrder = TrackerSuggestionOrder.VALUE_ASCENDING,
     val warningThreshold: Double = -1.0,
     val errorThreshold: Double = -1.0,
+    val notificationTitleTemplate: String? = null,
+    val notificationBodyTemplate: String? = null,
 ) : Feature {
 
     companion object {
@@ -51,7 +53,9 @@ data class Tracker(
             suggestionType = TrackerSuggestionType.fromEntity(twf.suggestionType),
             suggestionOrder = TrackerSuggestionOrder.fromEntity(twf.suggestionOrder),
             warningThreshold = twf.warningThreshold,
-            errorThreshold = twf.errorThreshold
+            errorThreshold = twf.errorThreshold,
+            notificationTitleTemplate = twf.notificationTitleTemplate,
+            notificationBodyTemplate = twf.notificationBodyTemplate
         )
     }
 
@@ -65,7 +69,9 @@ data class Tracker(
         suggestionType = suggestionType.toEntity(),
         suggestionOrder = suggestionOrder.toEntity(),
         warningThreshold = warningThreshold,
-        errorThreshold = errorThreshold
+        errorThreshold = errorThreshold,
+        notificationTitleTemplate = notificationTitleTemplate,
+        notificationBodyTemplate = notificationBodyTemplate
     )
 
     internal fun toFeatureEntity() = com.samco.trackandgraph.data.database.entity.Feature(

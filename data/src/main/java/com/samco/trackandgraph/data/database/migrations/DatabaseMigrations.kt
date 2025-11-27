@@ -17,6 +17,33 @@
 
 package com.samco.trackandgraph.data.database.migrations
 
+val MIGRATION_59_60 = object : androidx.room.migration.Migration(59, 60) {
+    override fun migrate(database: androidx.sqlite.db.SupportSQLiteDatabase) {
+        // notification_title_template
+        run {
+            val c = database.query("PRAGMA table_info(trackers_table)")
+            var exists = false
+            while (c.moveToNext()) {
+                val idx = c.getColumnIndex("name")
+                if (idx >= 0 && c.getString(idx) == "notification_title_template") { exists = true; break }
+            }
+            c.close()
+            if (!exists) database.execSQL("ALTER TABLE trackers_table ADD COLUMN notification_title_template TEXT")
+        }
+        // notification_body_template
+        run {
+            val c = database.query("PRAGMA table_info(trackers_table)")
+            var exists = false
+            while (c.moveToNext()) {
+                val idx = c.getColumnIndex("name")
+                if (idx >= 0 && c.getString(idx) == "notification_body_template") { exists = true; break }
+            }
+            c.close()
+            if (!exists) database.execSQL("ALTER TABLE trackers_table ADD COLUMN notification_body_template TEXT")
+        }
+    }
+}
+
 val allMigrations = arrayOf(
     MIGRATION_29_30,
     MIGRATION_30_31,
@@ -48,4 +75,5 @@ val allMigrations = arrayOf(
     MIGRATION_56_57,
     MIGRATION_57_58,
     MIGRATION_58_59,
+    MIGRATION_59_60,
 )

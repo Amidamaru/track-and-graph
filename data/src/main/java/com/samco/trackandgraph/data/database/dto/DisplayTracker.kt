@@ -34,5 +34,7 @@ data class DisplayTracker(
     val description: String,
     val timerStartInstant: Instant?,
     val warningThreshold: Double = -1.0,
-    val errorThreshold: Double = -1.0
+    val errorThreshold: Double = -1.0,
+    val notificationTitleTemplate: String? = null,
+    val notificationBodyTemplate: String? = null
 )

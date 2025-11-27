@@ -79,7 +79,9 @@ import com.samco.trackandgraph.ui.compose.ui.TextMapSpinner
 import com.samco.trackandgraph.ui.compose.ui.ValueInputTextField
 import com.samco.trackandgraph.ui.compose.ui.cardPadding
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import androidx.compose.runtime.rememberCoroutineScope
 
 @Serializable
 data class AddTrackerNavKey(
@@ -255,6 +257,8 @@ private fun AdvancedOptions(viewModel: AddTrackerViewModel) = Column {
             SuggestionType(viewModel)
 
             SuggestionOrder(viewModel)
+
+            NotificationTemplateInputs(viewModel)
         }
     }
 }
@@ -503,3 +507,72 @@ private fun NameInput(
     focusRequester = focusRequester,
     keyboardController = keyboardController
 )
+
+@Composable
+private fun NotificationTemplateInputs(viewModel: AddTrackerViewModel) {
+    DialogInputSpacing()
+    Text(text = "Benachrichtigungs-Titel Template (Platzhalter: {{name}}, {{value}}, {{time}}, {{warningThreshold}}, {{errorThreshold}})")
+    FullWidthTextField(
+        textFieldValue = viewModel.notificationTitleTemplate,
+        onValueChange = viewModel::onNotificationTitleTemplateChanged,
+        label = "Titel Template"
+    )
+    DialogInputSpacing()
+    Text(text = "Benachrichtigungs-Body Template (Zeilen mit \\n, Platzhalter wie oben)")
+    FullWidthTextField(
+        textFieldValue = viewModel.notificationBodyTemplate,
+        onValueChange = viewModel::onNotificationBodyTemplateChanged,
+        label = "Body Template",
+        singleLine = false
+    )
+    DialogInputSpacing()
+    if (viewModel.isUpdateMode.value == true) {
+        TestNotificationButton(viewModel)
+    }
+}
+
+@Composable
+private fun TestNotificationButton(viewModel: AddTrackerViewModel) {
+    var isTesting by rememberSaveable { mutableStateOf(false) }
+    val warningThreshold = viewModel.warningThreshold.text.toDoubleOrNull() ?: -1.0
+    val errorThreshold = viewModel.errorThreshold.text.toDoubleOrNull() ?: -1.0
+    val scope = rememberCoroutineScope()
+    androidx.compose.material3.Button(
+        enabled = !isTesting,
+        onClick = {
+            if (warningThreshold <= -1.0 && errorThreshold <= -1.0) {
+                return@Button
+            }
+            if (isTesting) return@Button
+            isTesting = true
+            scope.launch {
+                val impl = viewModel as? AddTrackerViewModelImpl ?: run { isTesting = false; return@launch }
+                val tracker = impl.currentTracker ?: run { isTesting = false; return@launch }
+                val featureId = tracker.featureId
+                val now = org.threeten.bp.OffsetDateTime.now()
+                val warnValue = if (warningThreshold > -1.0) warningThreshold + 0.01 else null
+                val errorValue = if (errorThreshold > -1.0) errorThreshold + 0.01 else null
+                val di = impl.dataInteractor
+                if (warnValue != null) {
+                    di.insertDataPoint(com.samco.trackandgraph.data.database.dto.DataPoint(
+                        featureId = featureId,
+                        timestamp = now,
+                        value = warnValue,
+                        label = "",
+                        note = ""
+                    ))
+                }
+                if (errorValue != null) {
+                    di.insertDataPoint(com.samco.trackandgraph.data.database.dto.DataPoint(
+                        featureId = featureId,
+                        timestamp = now.plusSeconds(1),
+                        value = errorValue,
+                        label = "",
+                        note = ""
+                    ))
+                }
+                isTesting = false
+            }
+        }
+    ) { Text("Benachrichtigung testen") }
+}

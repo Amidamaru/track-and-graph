@@ -47,7 +47,13 @@ internal data class TrackerWithFeature(
     val warningThreshold: Double,
 
     @ColumnInfo(name = "error_threshold")
-    val errorThreshold: Double
+    val errorThreshold: Double,
+
+    @ColumnInfo(name = "notification_title_template")
+    val notificationTitleTemplate: String?,
+
+    @ColumnInfo(name = "notification_body_template")
+    val notificationBodyTemplate: String?
 ) {
     fun toFeatureEntity() = Feature(
         id = featureId,

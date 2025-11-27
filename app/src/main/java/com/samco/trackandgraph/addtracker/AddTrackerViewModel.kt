@@ -54,6 +54,8 @@ interface AddTrackerViewModel : DurationInputViewModel {
     val warningThreshold: TextFieldValue
     val errorThreshold: TextFieldValue
     val complete: ReceiveChannel<Unit>
+    val notificationTitleTemplate: TextFieldValue
+    val notificationBodyTemplate: TextFieldValue
 
     fun init(groupId: Long, existingTrackerId: Long)
     fun onTrackerNameChanged(name: TextFieldValue)
@@ -70,11 +72,13 @@ interface AddTrackerViewModel : DurationInputViewModel {
     fun onSuggestionOrderChanged(suggestionOrder: TrackerSuggestionOrder)
     fun onWarningThresholdChanged(value: TextFieldValue)
     fun onErrorThresholdChanged(value: TextFieldValue)
+    fun onNotificationTitleTemplateChanged(value: TextFieldValue)
+    fun onNotificationBodyTemplateChanged(value: TextFieldValue)
 }
 
 @HiltViewModel
 class AddTrackerViewModelImpl @Inject constructor(
-    private val dataInteractor: DataInteractor,
+    internal val dataInteractor: DataInteractor,
     private val timerServiceInteractor: TimerServiceInteractor,
     @IODispatcher private val io: CoroutineDispatcher,
     @MainDispatcher private val ui: CoroutineDispatcher,
@@ -107,6 +111,9 @@ class AddTrackerViewModelImpl @Inject constructor(
     
     override var warningThreshold by mutableStateOf(TextFieldValue("-1"))
     override var errorThreshold by mutableStateOf(TextFieldValue("-1"))
+
+    override var notificationTitleTemplate by mutableStateOf(TextFieldValue(""))
+    override var notificationBodyTemplate by mutableStateOf(TextFieldValue(""))
 
     override fun onTrackerNameChanged(name: TextFieldValue) {
         trackerName = name
@@ -150,6 +157,7 @@ class AddTrackerViewModelImpl @Inject constructor(
 
     private var groupId: Long = -1
     private var existingTracker: Tracker? = null
+    internal val currentTracker: Tracker? get() = existingTracker
     private var initialized = false
 
     override fun init(groupId: Long, existingTrackerId: Long) {
@@ -191,6 +199,11 @@ class AddTrackerViewModelImpl @Inject constructor(
         val errStr = if (tracker.errorThreshold == -1.0) "-1" else tracker.errorThreshold.toString()
         errorThreshold = TextFieldValue(errStr, TextRange(errStr.length))
         
+        val titleTmp = tracker.notificationTitleTemplate ?: ""
+        notificationTitleTemplate = TextFieldValue(titleTmp, TextRange(titleTmp.length))
+        val bodyTmp = tracker.notificationBodyTemplate ?: ""
+        notificationBodyTemplate = TextFieldValue(bodyTmp, TextRange(bodyTmp.length))
+
         isUpdateModeFlow.value = true
     }
 
@@ -220,6 +233,14 @@ class AddTrackerViewModelImpl @Inject constructor(
 
     override fun onErrorThresholdChanged(value: TextFieldValue) {
         errorThreshold = value.copy(text = value.text.asValidatedDouble())
+    }
+
+    override fun onNotificationTitleTemplateChanged(value: TextFieldValue) {
+        notificationTitleTemplate = value
+    }
+
+    override fun onNotificationBodyTemplateChanged(value: TextFieldValue) {
+        notificationBodyTemplate = value
     }
 
     override fun onConfirmUpdate() {
@@ -284,7 +305,9 @@ class AddTrackerViewModelImpl @Inject constructor(
             suggestionType = suggestionType.value,
             suggestionOrder = suggestionOrder.value,
             warningThreshold = getWarningThresholdValue(),
-            errorThreshold = getErrorThresholdValue()
+            errorThreshold = getErrorThresholdValue(),
+            notificationTitleTemplate = notificationTitleTemplate.text.ifBlank { null },
+            notificationBodyTemplate = notificationBodyTemplate.text.ifBlank { null }
         )
         timerServiceInteractor.requestWidgetUpdatesForFeatureId(featureId = existingTracker.featureId)
     }
@@ -304,7 +327,9 @@ class AddTrackerViewModelImpl @Inject constructor(
             suggestionType = suggestionType.value ?: TrackerSuggestionType.VALUE_AND_LABEL,
             suggestionOrder = suggestionOrder.value ?: TrackerSuggestionOrder.VALUE_ASCENDING,
             warningThreshold = getWarningThresholdValue(),
-            errorThreshold = getErrorThresholdValue()
+            errorThreshold = getErrorThresholdValue(),
+            notificationTitleTemplate = notificationTitleTemplate.text.ifBlank { null },
+            notificationBodyTemplate = notificationBodyTemplate.text.ifBlank { null }
         )
         dataInteractor.insertTracker(tracker)
     }

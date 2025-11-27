@@ -78,5 +78,11 @@ internal data class Tracker(
     val warningThreshold: Double = -1.0,
 
     @ColumnInfo(name = "error_threshold", defaultValue = "-1.0")
-    val errorThreshold: Double = -1.0
+    val errorThreshold: Double = -1.0,
+
+    @ColumnInfo(name = "notification_title_template")
+    val notificationTitleTemplate: String? = null,
+
+    @ColumnInfo(name = "notification_body_template")
+    val notificationBodyTemplate: String? = null
 )

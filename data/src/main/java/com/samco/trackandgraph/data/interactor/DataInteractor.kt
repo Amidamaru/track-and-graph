@@ -185,4 +185,21 @@ interface DataInteractor : TrackerHelper, FunctionHelper {
      * This includes the feature itself and is used for cycle detection to prevent circular dependencies.
      */
     suspend fun getFeatureIdsDependingOn(featureId: Long): Set<Long>
+
+    suspend fun updateTracker(
+        oldTracker: com.samco.trackandgraph.data.database.dto.Tracker,
+        durationNumericConversionMode: TrackerHelper.DurationNumericConversionMode?,
+        newName: String?,
+        newType: com.samco.trackandgraph.data.database.dto.DataType?,
+        hasDefaultValue: Boolean?,
+        defaultValue: Double?,
+        defaultLabel: String?,
+        featureDescription: String?,
+        suggestionType: com.samco.trackandgraph.data.database.dto.TrackerSuggestionType?,
+        suggestionOrder: com.samco.trackandgraph.data.database.dto.TrackerSuggestionOrder?,
+        warningThreshold: Double?,
+        errorThreshold: Double?,
+        notificationTitleTemplate: String?,
+        notificationBodyTemplate: String?
+    )
 }

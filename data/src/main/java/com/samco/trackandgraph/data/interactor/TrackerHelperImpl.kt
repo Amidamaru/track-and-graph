@@ -133,7 +133,9 @@ internal class TrackerHelperImpl @Inject constructor(
                 suggestionOrder = suggestionOrder?.toEntity()
                     ?: oldTracker.suggestionOrder.toEntity(),
                 warningThreshold = warningThreshold ?: oldTracker.warningThreshold,
-                errorThreshold = errorThreshold ?: oldTracker.errorThreshold
+                errorThreshold = errorThreshold ?: oldTracker.errorThreshold,
+                notificationTitleTemplate = oldTracker.notificationTitleTemplate,
+                notificationBodyTemplate = oldTracker.notificationBodyTemplate
             )
             dao.updateFeature(newFeature)
             dao.updateTracker(newTracker)

@@ -68,7 +68,9 @@ private const val getTrackersQuery = """
         trackers_table.suggestion_type as suggestion_type,
         trackers_table.suggestion_order as suggestion_order,
         trackers_table.warning_threshold as warning_threshold,
-        trackers_table.error_threshold as error_threshold
+        trackers_table.error_threshold as error_threshold,
+        trackers_table.notification_title_template as notification_title_template,
+        trackers_table.notification_body_template as notification_body_template
     FROM trackers_table
     LEFT JOIN features_table ON trackers_table.feature_id = features_table.id
             """
