@@ -236,15 +236,16 @@ fun formatRelativeTimeSpan(
     context: Context,
     dateTime: OffsetDateTime
 ): String {
-    //There's a special case here where the time since is less than a day and more than an hour ago
-    //because DateUtils.getRelativeTimeSpanString() will not mention how many minutes ago it was. So
-    //it would just say 1 hour ago even if it was 1 hour and 59 minutes ago.
-    //DateUtils.getRelativeTimeSpanString() still does most of the logic though for the various
-    //edge cases and across locales
-    val duration = Duration.between(dateTime, OffsetDateTime.now())
-    return if (!duration.isNegative && duration.toDays() < 1 && duration.toMinutes() > 60) {
+    val now = OffsetDateTime.now()
+    var duration = Duration.between(dateTime, now)
+    if (duration.isNegative) duration = Duration.ZERO
+    return if (duration.toDays() < 1) {
         val hours = duration.toHours()
         val minutes = duration.toMinutes() % 60
         context.getString(R.string.hours_and_minutes_ago, hours, minutes)
-    } else DateUtils.getRelativeTimeSpanString(dateTime.toInstant().toEpochMilli()).toString()
+    } else {
+        val days = duration.toDays()
+        val hours = duration.toHours() % 24
+        context.getString(R.string.days_and_hours_ago, days, hours)
+    }
 }
