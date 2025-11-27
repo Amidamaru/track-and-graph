@@ -56,6 +56,7 @@ import com.samco.trackandgraph.functions.repository.FunctionsRepositoryImpl
 import com.samco.trackandgraph.functions.service.FunctionsService
 import com.samco.trackandgraph.functions.service.DebugFunctionsService
 import com.samco.trackandgraph.functions.service.ProductionFunctionsService
+import com.samco.trackandgraph.widgets.WidgetThresholdNotificationService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -145,4 +146,10 @@ class AppModule {
         ignoreUnknownKeys = !BuildConfig.DEBUG
         isLenient = !BuildConfig.DEBUG
     }
+
+    @Provides
+    @Singleton
+    internal fun getWidgetThresholdNotificationService(
+        @ApplicationContext context: Context
+    ): WidgetThresholdNotificationService = WidgetThresholdNotificationService(context)
 }

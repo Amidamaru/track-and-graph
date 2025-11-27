@@ -103,6 +103,9 @@ android {
     }
 
     namespace = "com.samco.trackandgraph.data"
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 tasks.withType<Test>().configureEach {
@@ -117,6 +120,7 @@ dependencies {
 
     //Dependency Injection
     implementation(libs.hilt.android)
+    implementation(libs.core.ktx)
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.hilt.compiler)
 

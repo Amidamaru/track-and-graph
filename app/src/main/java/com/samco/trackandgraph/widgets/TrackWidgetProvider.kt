@@ -44,6 +44,7 @@ import com.samco.trackandgraph.widgets.TrackWidgetState.UPDATE_FEATURE_ID
 import com.samco.trackandgraph.widgets.TrackWidgetState.WIDGET_PREFS_NAME
 import com.samco.trackandgraph.widgets.TrackWidgetState.getFeatureIdPref
 import com.samco.trackandgraph.widgets.TrackWidgetState.updateFromTracker
+import com.samco.trackandgraph.widgets.WidgetThresholdNotificationService
 import com.samco.trackandgraph.widgets.WidgetTransparencyManager
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -62,6 +63,9 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
 
     @Inject
     lateinit var timerServiceInteractor: TimerServiceInteractor
+
+    @Inject
+    lateinit var widgetNotificationService: WidgetThresholdNotificationService
 
     override val glanceAppWidget: GlanceAppWidget = TrackWidgetGlance()
 
@@ -137,6 +141,17 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
             prefs.updateFromTracker(featureId, tracker)
             // Speichere auch Transparenz in DataStore
             prefs[TrackWidgetState.KEY_TRANSPARENCY] = transparency
+        }
+
+        // Prüfe auf Farbwechsel und sende Benachrichtigung wenn nötig
+        if (tracker != null) {
+            widgetNotificationService.checkAndNotifyColorChange(
+                featureId = featureId,
+                trackerName = tracker.name,
+                lastTimestampMillis = tracker.timestamp?.toInstant()?.toEpochMilli(),
+                warningThreshold = tracker.warningThreshold,
+                errorThreshold = tracker.errorThreshold
+            )
         }
     }
 

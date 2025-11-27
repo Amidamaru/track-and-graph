@@ -5,6 +5,9 @@ buildscript {
         classpath(libs.kotlin.gradle.plugin)
         classpath(libs.shot)
     }
+    repositories {
+        mavenCentral()
+    }
 }
 
 plugins {

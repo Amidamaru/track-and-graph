@@ -229,7 +229,9 @@ private fun setUpLineGraphXAxis(
     endTime: OffsetDateTime
 ) {
     binding.xyPlot.domainTitle.text = ""
-    binding.xyPlot.setDomainStep(StepMode.SUBDIVIDE, 11.0)
+    // Schrittweite auf 1 Tag (24h in Millisekunden) im Dauer-Raum
+    val oneDayMillis = 24 * 60 * 60 * 1000.0
+    binding.xyPlot.setDomainStep(StepMode.INCREMENT_BY_VAL, oneDayMillis)
     binding.xyPlot.graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).format =
         object : Format() {
             override fun format(
@@ -238,18 +240,16 @@ private fun setUpLineGraphXAxis(
                 pos: FieldPosition
             ): StringBuffer {
                 val millis = (obj as Number).toLong()
-                val duration = Duration.ofMillis(millis)
-
+                val duration = org.threeten.bp.Duration.ofMillis(millis)
                 val formattedTimestamp = getDateTimeFormattedForDuration(
-                    context,
-                    binding,
-                    duration,
-                    endTime
+                    context = context,
+                    binding = binding,
+                    duration = duration,
+                    endTime = endTime
                 )
                 return toAppendTo.append(formattedTimestamp)
             }
-
-            override fun parseObject(source: String, pos: ParsePosition) = null
+            override fun parseObject(source: String, pos: java.text.ParsePosition?): Any? = null
         }
 }
 

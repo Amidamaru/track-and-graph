@@ -240,7 +240,7 @@ class LineGraphDataFactory @Inject constructor(
 
     private fun getXYSeriesFromDataPoints(
         dataSample: List<IDataPoint>,
-        endTime: OffsetDateTime,
+        endTime: OffsetDateTime?,
         lineGraphFeature: LineGraphFeature
     ): FastXYSeries {
         val scale = lineGraphFeature.scale
@@ -254,8 +254,10 @@ class LineGraphDataFactory @Inject constructor(
         val yValues = dataSample.map { dp ->
             (dp.value * scale / durationDivisor) + offset
         }
+        // endTime = aktuellster Datenpunkt
+        val actualEndTime = dataSample.maxByOrNull { it.timestamp }?.timestamp ?: OffsetDateTime.now()
         val xValues = dataSample.map { dp ->
-            Duration.between(endTime, dp.timestamp).toMillis()
+            Duration.between(actualEndTime, dp.timestamp).toMillis()
         }
 
         return androidPlotSeriesHelper.getFastXYSeries(
