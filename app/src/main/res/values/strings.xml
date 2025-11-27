@@ -406,4 +406,5 @@
     <string name="functions_landscape_hint">Tip: Functions work best in landscape</string>
     <string name="functions_start_hint">Start here: Long press and select Data Source</string>
     <string name="pie_chart_color_start_label" translatable="false">Farben starten bei</string>
+    <string name="pie_chart_segment_colors_label" translatable="false">Segmentfarben</string>
 </resources>

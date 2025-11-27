@@ -71,15 +71,16 @@ class PieChartDataFactory @Inject constructor(
             val total = segments.sumOf { s -> s.second }
             val percentages = segments.mapIndexed { idx, pair ->
                 val (title, value) = pair
-                com.samco.trackandgraph.graphstatview.factories.viewdto.ColorSpec.ColorIndex(
+                val colorSpec = config.segmentColors?.get(title)?.let { index ->
+                    com.samco.trackandgraph.graphstatview.factories.viewdto.ColorSpec.ColorIndex(index % com.samco.trackandgraph.ui.dataVisColorList.size)
+                } ?: com.samco.trackandgraph.graphstatview.factories.viewdto.ColorSpec.ColorIndex(
                     (config.colorIndexStart + idx) % com.samco.trackandgraph.ui.dataVisColorList.size
-                ).let { colorSpec ->
-                    IPieChartViewData.Segment(
-                        title = title,
-                        value = (value / total) * 100.0,
-                        color = colorSpec
-                    )
-                }
+                )
+                IPieChartViewData.Segment(
+                    title = title,
+                    value = (value / total) * 100.0,
+                    color = colorSpec
+                )
             }
 
             object : IPieChartViewData {

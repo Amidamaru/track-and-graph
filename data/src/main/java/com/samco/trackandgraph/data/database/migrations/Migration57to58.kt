@@ -25,11 +25,21 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 val MIGRATION_57_58 = object : Migration(57, 58) {
     override fun migrate(database: SupportSQLiteDatabase) {
-        // Einfacher und robuster: direkt Spalte hinzufügen mit Default 0.
-        // Hinweis: SQLite unterstützt kein IF NOT EXISTS für Spalten; Migration läuft genau einmal im Upgrade-Pfad.
-        database.execSQL(
-            "ALTER TABLE pie_charts_table2 ADD COLUMN color_index_start INTEGER NOT NULL DEFAULT 0"
-        )
-        // Falls es Indizes gab, bleiben sie unverändert. Keine weiteren Schritte nötig.
+        // Prüfe, ob die Spalte bereits existiert
+        val cursor = database.query("PRAGMA table_info(pie_charts_table2)")
+        var hasColorIndexStart = false
+        while (cursor.moveToNext()) {
+            val nameIndex = cursor.getColumnIndex("name")
+            if (nameIndex >= 0 && cursor.getString(nameIndex) == "color_index_start") {
+                hasColorIndexStart = true
+                break
+            }
+        }
+        cursor.close()
+        if (!hasColorIndexStart) {
+            database.execSQL(
+                "ALTER TABLE pie_charts_table2 ADD COLUMN color_index_start INTEGER NOT NULL DEFAULT 0"
+            )
+        }
     }
 }

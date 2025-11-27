@@ -19,6 +19,7 @@ package com.samco.trackandgraph.graphstatinput.configviews.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewModelScope
 import com.samco.trackandgraph.R
 import com.samco.trackandgraph.data.database.dto.GraphEndDate
 import com.samco.trackandgraph.data.database.dto.PieChart
@@ -35,6 +36,7 @@ import com.samco.trackandgraph.graphstatinput.configviews.behaviour.TimeRangeCon
 import com.samco.trackandgraph.graphstatproviders.GraphStatInteractorProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -77,6 +79,8 @@ class PieChartConfigViewModel @Inject constructor(
 
     var colorIndexStart: Int by mutableStateOf(0)
         private set
+    var segmentColors: Map<String, Int> by mutableStateOf(emptyMap())
+        private set
 
     override fun updateConfig() {
         pieChart = pieChart.copy(
@@ -84,7 +88,8 @@ class PieChartConfigViewModel @Inject constructor(
             sampleSize = selectedDuration.temporalAmount,
             endDate = sampleEndingAt.asGraphEndDate(),
             sumByCount = sumByCount,
-            colorIndexStart = colorIndexStart
+            colorIndexStart = colorIndexStart,
+            segmentColors = segmentColors
         )
     }
 
@@ -119,6 +124,43 @@ class PieChartConfigViewModel @Inject constructor(
             this.pieChart = it
             sumByCount = it.sumByCount
             colorIndexStart = it.colorIndexStart
+            segmentColors = it.segmentColors ?: emptyMap()
+        }
+        // Automatisch Labels laden und Segmentfarben initialisieren/ergänzen
+        viewModelScope.launch(io) {
+            refreshSegmentColorsFromData()
+        }
+    }
+
+    suspend fun refreshSegmentColorsFromData() {
+        val featureId = singleFeatureConfigBehaviour.featureId ?: return
+        // Sample aktuelle Daten mit der gesetzten Zeitspanne
+        val end = sampleEndingAt.asGraphEndDate().toOffsetDateTime()
+        val sample = dataSampler.getDataSampleForFeatureId(featureId)
+        try {
+            val clipped = com.samco.trackandgraph.graphstatview.functions.data_sample_functions.DataClippingFunction(
+                endTime = end,
+                sampleDuration = selectedDuration.temporalAmount
+            ).mapSample(sample)
+            val dataPoints = clipped.toList()
+            // Labels sammeln
+            val labels = dataPoints.mapNotNull { it.label }.distinct().sorted()
+            if (labels.isNotEmpty()) {
+                // Bestehende Farben behalten, fehlende Labels ergänzen
+                val updated = segmentColors.toMutableMap()
+                var idx = colorIndexStart
+                labels.forEach { lbl ->
+                    if (!updated.containsKey(lbl)) {
+                        updated[lbl] = idx % com.samco.trackandgraph.ui.dataVisColorList.size
+                        idx++
+                    }
+                }
+                segmentColors = updated
+                onUpdate()
+            }
+            clipped.dispose()
+        } finally {
+            sample.dispose()
         }
     }
 
@@ -129,6 +171,11 @@ class PieChartConfigViewModel @Inject constructor(
 
     fun updateColorIndexStart(index: Int) {
         this.colorIndexStart = index
+        onUpdate()
+    }
+
+    fun updateSegmentColor(label: String, colorIndex: Int) {
+        segmentColors = segmentColors.toMutableMap().apply { put(label, colorIndex) }
         onUpdate()
     }
 }

@@ -60,15 +60,19 @@ internal data class PieChart(
     val sumByCount: Boolean,
 
     @ColumnInfo(name = "color_index_start")
-    val colorIndexStart: Int = 0
+    val colorIndexStart: Int = 0,
+
+    @ColumnInfo(name = "segment_colors")
+    val segmentColorsJson: String? = null
 ) {
-    fun toDto() = PieChart(
+    fun toDto() = com.samco.trackandgraph.data.database.dto.PieChart(
         id = id,
         graphStatId = graphStatId,
         featureId = featureId,
         sampleSize = sampleSize,
         endDate = endDate ?: GraphEndDate.Latest,
         sumByCount = sumByCount,
-        colorIndexStart = colorIndexStart
+        colorIndexStart = colorIndexStart,
+        segmentColors = segmentColorsJson?.let { com.samco.trackandgraph.data.database.dto.PieChart.decodeSegmentColors(it) }
     )
 }

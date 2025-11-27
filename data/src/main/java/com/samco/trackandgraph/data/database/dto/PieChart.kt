@@ -26,7 +26,8 @@ data class PieChart(
     val sampleSize: TemporalAmount?,
     val endDate: GraphEndDate,
     val sumByCount: Boolean,
-    val colorIndexStart: Int = 0
+    val colorIndexStart: Int = 0,
+    val segmentColors: Map<String, Int>? = null
 ) {
     internal fun toEntity() = com.samco.trackandgraph.data.database.entity.PieChart(
         id = id,
@@ -35,6 +36,19 @@ data class PieChart(
         sampleSize = sampleSize,
         endDate = endDate,
         sumByCount = sumByCount,
-        colorIndexStart = colorIndexStart
+        colorIndexStart = colorIndexStart,
+        segmentColorsJson = segmentColors?.let { encodeSegmentColors(it) }
     )
+
+    companion object {
+        fun encodeSegmentColors(map: Map<String, Int>): String = map.entries.joinToString(separator = "\n") { (k, v) -> "$k=$v" }
+        fun decodeSegmentColors(value: String): Map<String, Int> = value
+            .lineSequence()
+            .mapNotNull {
+                val idx = it.indexOf('=')
+                if (idx <= 0) null else it.substring(0, idx) to it.substring(idx + 1).toIntOrNull()
+            }
+            .filter { it.second != null }
+            .associate { it.first to it.second!! }
+    }
 }

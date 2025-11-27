@@ -128,4 +128,28 @@ fun PieChartConfigView(
     )
 
     DialogInputSpacing()
+
+    // Pro-Segment-Farben
+    if (viewModel.segmentColors.isNotEmpty()) {
+        Text(
+            modifier = Modifier.padding(horizontal = cardPadding),
+            text = stringResource(id = R.string.pie_chart_segment_colors_label),
+            style = MaterialTheme.typography.titleSmall
+        )
+        DialogInputSpacing()
+        viewModel.segmentColors.forEach { (label, currentIndex) ->
+            Text(
+                modifier = Modifier.padding(horizontal = cardPadding),
+                text = label,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            com.samco.trackandgraph.ui.compose.ui.ColorSpinner(
+                selectedColor = currentIndex,
+                onColorSelected = { idx -> viewModel.updateSegmentColor(label, idx) }
+            )
+            DialogInputSpacing()
+        }
+    }
+
+    DialogInputSpacing()
 }
