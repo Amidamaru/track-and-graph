@@ -66,7 +66,7 @@ import org.threeten.bp.temporal.TemporalAmount
 
 private val databaseFormatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
-const val TNG_DATABASE_VERSION = 57
+const val TNG_DATABASE_VERSION = 58
 
 @Database(
     entities = [
@@ -117,7 +117,6 @@ abstract class TrackAndGraphDatabase : RoomDatabase() {
                 "trackandgraph_database"//This name is also in backup_rules.xml
             )
                 .addMigrations(*allMigrations)
-                .fallbackToDestructiveMigration()
                 .addCallback(databaseCallback())
                 .build()
         }
@@ -305,4 +304,3 @@ fun odtFromString(value: String): OffsetDateTime? =
     else databaseFormatter.parse(value, OffsetDateTime::from)
 
 fun stringFromOdt(value: OffsetDateTime): String = databaseFormatter.format(value)
-

@@ -159,6 +159,12 @@ android {
         }
     }
 
+    lint {
+        abortOnError = true
+        checkReleaseBuilds = false // verhindert lintVitalAnalyzeRelease Crash
+        warningsAsErrors = false
+    }
+
     buildFeatures {
         dataBinding = true
         compose = true

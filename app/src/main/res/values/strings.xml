@@ -405,4 +405,5 @@
     <string name="function_network_failure">Failed to load functions. Please make sure you are connected to the internet. If the issue persists please make sure the app is up to date.</string>
     <string name="functions_landscape_hint">Tip: Functions work best in landscape</string>
     <string name="functions_start_hint">Start here: Long press and select Data Source</string>
+    <string name="pie_chart_color_start_label" translatable="false">Farben starten bei</string>
 </resources>

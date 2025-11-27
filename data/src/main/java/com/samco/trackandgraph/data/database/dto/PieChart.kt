@@ -25,14 +25,16 @@ data class PieChart(
     val featureId: Long,
     val sampleSize: TemporalAmount?,
     val endDate: GraphEndDate,
-    val sumByCount: Boolean
+    val sumByCount: Boolean,
+    val colorIndexStart: Int = 0
 ) {
-    internal fun toEntity() = PieChart(
+    internal fun toEntity() = com.samco.trackandgraph.data.database.entity.PieChart(
         id = id,
         graphStatId = graphStatId,
         featureId = featureId,
         sampleSize = sampleSize,
         endDate = endDate,
-        sumByCount = sumByCount
+        sumByCount = sumByCount,
+        colorIndexStart = colorIndexStart
     )
 }

@@ -71,15 +71,20 @@ class PieChartConfigViewModel @Inject constructor(
         featureId = -1L,
         sampleSize = null,
         endDate = GraphEndDate.Latest,
-        sumByCount = false
+        sumByCount = false,
+        colorIndexStart = 0
     )
+
+    var colorIndexStart: Int by mutableStateOf(0)
+        private set
 
     override fun updateConfig() {
         pieChart = pieChart.copy(
             featureId = singleFeatureConfigBehaviour.featureId ?: -1L,
             sampleSize = selectedDuration.temporalAmount,
             endDate = sampleEndingAt.asGraphEndDate(),
-            sumByCount = sumByCount
+            sumByCount = sumByCount,
+            colorIndexStart = colorIndexStart
         )
     }
 
@@ -113,11 +118,17 @@ class PieChartConfigViewModel @Inject constructor(
         pc?.let {
             this.pieChart = it
             sumByCount = it.sumByCount
+            colorIndexStart = it.colorIndexStart
         }
     }
 
     fun updateSumByCount(sumByCount: Boolean) {
         this.sumByCount = sumByCount
+        onUpdate()
+    }
+
+    fun updateColorIndexStart(index: Int) {
+        this.colorIndexStart = index
         onUpdate()
     }
 }

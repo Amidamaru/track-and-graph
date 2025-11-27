@@ -57,7 +57,10 @@ internal data class PieChart(
     val endDate: GraphEndDate?,
 
     @ColumnInfo(name = "sum_by_count")
-    val sumByCount: Boolean
+    val sumByCount: Boolean,
+
+    @ColumnInfo(name = "color_index_start")
+    val colorIndexStart: Int = 0
 ) {
     fun toDto() = PieChart(
         id = id,
@@ -65,6 +68,7 @@ internal data class PieChart(
         featureId = featureId,
         sampleSize = sampleSize,
         endDate = endDate ?: GraphEndDate.Latest,
-        sumByCount = sumByCount
+        sumByCount = sumByCount,
+        colorIndexStart = colorIndexStart
     )
 }

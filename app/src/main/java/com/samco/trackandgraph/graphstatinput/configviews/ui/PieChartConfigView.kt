@@ -112,4 +112,20 @@ fun PieChartConfigView(
     )
 
     DialogInputSpacing()
+
+    // Farben: Start-Index der Segmentfarben auswählen
+    Text(
+        modifier = Modifier.padding(horizontal = cardPadding),
+        text = stringResource(id = R.string.pie_chart_color_start_label),
+        style = MaterialTheme.typography.titleSmall
+    )
+
+    DialogInputSpacing()
+
+    com.samco.trackandgraph.ui.compose.ui.ColorSpinner(
+        selectedColor = viewModel.colorIndexStart,
+        onColorSelected = { viewModel.updateColorIndexStart(it) }
+    )
+
+    DialogInputSpacing()
 }

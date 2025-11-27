@@ -106,6 +106,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    lint {
+        abortOnError = true // weiterhin Fehler auf dev sichtbar
+        checkReleaseBuilds = false // LintVitalAnalyzeRelease ausschalten
+        warningsAsErrors = false
+    }
 }
 
 tasks.withType<Test>().configureEach {
