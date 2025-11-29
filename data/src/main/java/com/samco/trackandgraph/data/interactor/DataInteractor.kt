@@ -73,6 +73,7 @@ interface DataInteractor : TrackerHelper, FunctionHelper {
 
     suspend fun insertDataPoints(dataPoints: List<DataPoint>)
 
+
     /**
      * Emits an event every time currently displayed data may have changed.
      *

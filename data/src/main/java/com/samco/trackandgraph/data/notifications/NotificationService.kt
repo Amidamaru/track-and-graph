@@ -23,18 +23,22 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import android.Manifest
+import com.samco.trackandgraph.data.database.TrackAndGraphDatabaseDao
 import com.samco.trackandgraph.data.database.dto.DataPoint
 import com.samco.trackandgraph.data.database.dto.Tracker
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 import org.threeten.bp.format.DateTimeFormatter
 import timber.log.Timber
 import javax.inject.Inject
 
-interface NotificationService {
+internal interface NotificationService {
     suspend fun checkAndNotifyThreshold(dataPoint: DataPoint, tracker: Tracker)
 }
 
-class NotificationServiceImpl @Inject constructor(
-    private val context: Context
+internal class NotificationServiceImpl @Inject constructor(
+    private val context: Context,
+    private val dao: TrackAndGraphDatabaseDao
 ) : NotificationService {
 
     companion object {
@@ -89,9 +93,68 @@ class NotificationServiceImpl @Inject constructor(
         return try {
             val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
             dataPoint.timestamp.format(formatter)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             ""
         }
+    }
+
+    private fun calculateElapsedTime(currentDataPoint: DataPoint, tracker: Tracker): String {
+        return try {
+            val allDataPointEntities = dao.getDataPointsForFeatureSync(tracker.featureId)
+
+            // Find the current data point and the previous one
+            // Data points are ordered by epoch_milli DESC (newest first)
+            val currentEpochMilli = currentDataPoint.timestamp.toInstant().toEpochMilli()
+            val currentIndex = allDataPointEntities.indexOfFirst { entity ->
+                entity.epochMilli == currentEpochMilli
+            }
+
+            if (currentIndex == -1 || currentIndex >= allDataPointEntities.size - 1) {
+                // Either current point not found or no previous point exists
+                return "0h"
+            }
+
+            val previousDataPointEntity = allDataPointEntities[currentIndex + 1]
+            val currentInstant = Instant.ofEpochMilli(allDataPointEntities[currentIndex].epochMilli)
+            val previousInstant = Instant.ofEpochMilli(previousDataPointEntity.epochMilli)
+
+            val duration = Duration.between(previousInstant, currentInstant)
+
+            // Format as human-readable string according to requirements:
+            // - if < 1day: show only hours (no minutes)
+            // - if >= 1day: show days + hours (no minutes)
+            val totalHours = duration.toHours()
+            val days = totalHours / 24
+            val remainingHours = totalHours % 24
+
+            return when {
+                days > 0L -> "${days}d ${remainingHours}h"
+                totalHours > 0L -> "${totalHours}h"
+                else -> "< 1h"
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Error calculating elapsed time for tracker: ${tracker.name}")
+            "N/A"
+        }
+    }
+
+    private fun replaceTemplatePlaceholders(
+        template: String,
+        tracker: Tracker,
+        dataPoint: DataPoint
+    ): String {
+        val timeStr = formatTimestamp(dataPoint)
+        val elapsedStr = calculateElapsedTime(dataPoint, tracker)
+
+        return template
+            .replace("{{name}}", tracker.name)
+            .replace("{{value}}", dataPoint.value.toString())
+            .replace("{{time}}", timeStr)
+            .replace("{{elapsed}}", elapsedStr)
+            .replace("{{errorThreshold}}", tracker.errorThreshold.toString())
+            .replace("{{warningThreshold}}", tracker.warningThreshold.toString())
+            .replace("{{label}}", dataPoint.label)
+            .replace("{{note}}", dataPoint.note)
     }
 
     private fun sendErrorThresholdNotification(
@@ -101,16 +164,11 @@ class NotificationServiceImpl @Inject constructor(
     ) {
         val notificationId = (ERROR_THRESHOLD_BASE_ID + tracker.id).toInt()
         val timeStr = formatTimestamp(dataPoint)
-        val title = (tracker.notificationTitleTemplate ?: "Fehler-Schwelle überschritten")
-            .replace("{{name}}", tracker.name)
-            .replace("{{value}}", dataPoint.value.toString())
-            .replace("{{time}}", timeStr)
-        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nFehler-Schwelle: {{errorThreshold}}"
-        val body = bodyTemplate
-            .replace("{{name}}", tracker.name)
-            .replace("{{value}}", dataPoint.value.toString())
-            .replace("{{time}}", timeStr)
-            .replace("{{errorThreshold}}", tracker.errorThreshold.toString())
+        val titleTemplate = tracker.notificationTitleTemplate ?: "Fehler-Schwelle überschritten"
+        val title = replaceTemplatePlaceholders(titleTemplate, tracker, dataPoint)
+
+        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nVerstrichene Zeit: {{elapsed}}\nFehler-Schwelle: {{errorThreshold}}"
+        val body = replaceTemplatePlaceholders(bodyTemplate, tracker, dataPoint)
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon) // Entfernt Warn-Dreieck, nimmt App-Icon
             .setContentTitle(title)
@@ -129,16 +187,11 @@ class NotificationServiceImpl @Inject constructor(
     ) {
         val notificationId = (WARNING_THRESHOLD_BASE_ID + tracker.id).toInt()
         val timeStr = formatTimestamp(dataPoint)
-        val title = (tracker.notificationTitleTemplate ?: "Warn-Schwelle überschritten")
-            .replace("{{name}}", tracker.name)
-            .replace("{{value}}", dataPoint.value.toString())
-            .replace("{{time}}", timeStr)
-        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nWarn-Schwelle: {{warningThreshold}}"
-        val body = bodyTemplate
-            .replace("{{name}}", tracker.name)
-            .replace("{{value}}", dataPoint.value.toString())
-            .replace("{{time}}", timeStr)
-            .replace("{{warningThreshold}}", tracker.warningThreshold.toString())
+        val titleTemplate = tracker.notificationTitleTemplate ?: "Warn-Schwelle überschritten"
+        val title = replaceTemplatePlaceholders(titleTemplate, tracker, dataPoint)
+
+        val bodyTemplate = tracker.notificationBodyTemplate ?: "Tracker: {{name}}\nZeit: {{time}}\nWert: {{value}}\nVerstrichene Zeit: {{elapsed}}\nWarn-Schwelle: {{warningThreshold}}"
+        val body = replaceTemplatePlaceholders(bodyTemplate, tracker, dataPoint)
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon)
             .setContentTitle(title)

@@ -391,6 +391,7 @@ internal class DataInteractorImpl @Inject constructor(
         }
     }
 
+
     override fun getDataUpdateEvents(): SharedFlow<DataUpdateType> = dataUpdateEvents
 
     override suspend fun getGraphStatById(graphStatId: Long): GraphOrStat = withContext(io) {

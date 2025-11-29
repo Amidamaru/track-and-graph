@@ -97,6 +97,7 @@ class DataModule {
 
     @Provides
     internal fun getNotificationService(
-        @ApplicationContext context: Context
-    ): NotificationService = NotificationServiceImpl(context)
+        @ApplicationContext context: Context,
+        dao: TrackAndGraphDatabaseDao
+    ): NotificationService = NotificationServiceImpl(context, dao)
 }
