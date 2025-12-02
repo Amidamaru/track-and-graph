@@ -150,7 +150,9 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
                 trackerName = tracker.name,
                 lastTimestampMillis = tracker.timestamp?.toInstant()?.toEpochMilli(),
                 warningThreshold = tracker.warningThreshold,
-                errorThreshold = tracker.errorThreshold
+                errorThreshold = tracker.errorThreshold,
+                notificationTitleTemplate = tracker.notificationTitleTemplate,
+                notificationBodyTemplate = tracker.notificationBodyTemplate
             )
         }
     }

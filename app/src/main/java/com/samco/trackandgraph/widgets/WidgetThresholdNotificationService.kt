@@ -86,7 +86,9 @@ class WidgetThresholdNotificationService @Inject constructor(
         trackerName: String,
         lastTimestampMillis: Long?,
         warningThreshold: Double,
-        errorThreshold: Double
+        errorThreshold: Double,
+        notificationTitleTemplate: String? = null,
+        notificationBodyTemplate: String? = null
     ) {
         try {
             val currentColor = getColorStatus(lastTimestampMillis, warningThreshold, errorThreshold)
@@ -99,14 +101,14 @@ class WidgetThresholdNotificationService @Inject constructor(
             if (previousColor != currentColor) {
                 when {
                     currentColor == ColorStatus.RED && previousColor == ColorStatus.YELLOW -> {
-                        sendErrorThresholdNotification(featureId, trackerName)
+                        sendErrorThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
                     }
                     currentColor == ColorStatus.RED && previousColor == ColorStatus.WHITE -> {
                         // Direkter Sprung zu ROT (seltener Fall)
-                        sendErrorThresholdNotification(featureId, trackerName)
+                        sendErrorThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
                     }
                     currentColor == ColorStatus.YELLOW && previousColor == ColorStatus.WHITE -> {
-                        sendWarningThresholdNotification(featureId, trackerName)
+                        sendWarningThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
                     }
                     // Falls Farbe zurückgeht (Datenpunkt wurde gelöscht/bearbeitet)
                     currentColor == ColorStatus.WHITE && previousColor != ColorStatus.WHITE -> {
@@ -123,7 +125,12 @@ class WidgetThresholdNotificationService @Inject constructor(
         }
     }
 
-    private fun sendErrorThresholdNotification(featureId: Long, trackerName: String) {
+    private fun sendErrorThresholdNotification(
+        featureId: Long,
+        trackerName: String,
+        notificationTitleTemplate: String? = null,
+        notificationBodyTemplate: String? = null
+    ) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
                 as? NotificationManager ?: return
@@ -142,14 +149,25 @@ class WidgetThresholdNotificationService @Inject constructor(
             val notificationId = (NOTIFICATION_BASE_ID + featureId.toInt()).toInt()
             val timeStr = Instant.now().toString().substring(11, 19) // HH:mm:ss
 
+            val title = if (notificationTitleTemplate != null) {
+                replaceTemplatePlaceholders(notificationTitleTemplate, trackerName, timeStr)
+            } else {
+                "⚠️ Fehler-Schwelle überschritten"
+            }
+
+            val bodyText = if (notificationBodyTemplate != null) {
+                replaceTemplatePlaceholders(notificationBodyTemplate, trackerName, timeStr)
+            } else {
+                "Tracker: $trackerName\nZeit: $timeStr\nDie Fehler-Schwelle wurde überschritten"
+            }
+
             val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.warning_icon)
-                .setContentTitle("⚠️ Fehler-Schwelle überschritten")
+                .setContentTitle(title)
                 .setContentText("$trackerName • $timeStr")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
-                .setStyle(NotificationCompat.BigTextStyle()
-                    .bigText("Tracker: $trackerName\nZeit: $timeStr\nDie Fehler-Schwelle wurde überschritten"))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
                 .build()
 
             notificationManager.notify(notificationId, notification)
@@ -158,7 +176,12 @@ class WidgetThresholdNotificationService @Inject constructor(
         }
     }
 
-    private fun sendWarningThresholdNotification(featureId: Long, trackerName: String) {
+    private fun sendWarningThresholdNotification(
+        featureId: Long,
+        trackerName: String,
+        notificationTitleTemplate: String? = null,
+        notificationBodyTemplate: String? = null
+    ) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
                 as? NotificationManager ?: return
@@ -177,14 +200,25 @@ class WidgetThresholdNotificationService @Inject constructor(
             val notificationId = (NOTIFICATION_BASE_ID + featureId.toInt()).toInt()
             val timeStr = Instant.now().toString().substring(11, 19) // HH:mm:ss
 
+            val title = if (notificationTitleTemplate != null) {
+                replaceTemplatePlaceholders(notificationTitleTemplate, trackerName, timeStr)
+            } else {
+                "⚠️ Warn-Schwelle überschritten"
+            }
+
+            val bodyText = if (notificationBodyTemplate != null) {
+                replaceTemplatePlaceholders(notificationBodyTemplate, trackerName, timeStr)
+            } else {
+                "Tracker: $trackerName\nZeit: $timeStr\nDie Warn-Schwelle wurde überschritten"
+            }
+
             val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.warning_icon)
-                .setContentTitle("⚠️ Warn-Schwelle überschritten")
+                .setContentTitle(title)
                 .setContentText("$trackerName • $timeStr")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
-                .setStyle(NotificationCompat.BigTextStyle()
-                    .bigText("Tracker: $trackerName\nZeit: $timeStr\nDie Warn-Schwelle wurde überschritten"))
+                .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
                 .build()
 
             notificationManager.notify(notificationId, notification)
@@ -231,5 +265,15 @@ class WidgetThresholdNotificationService @Inject constructor(
     }
 
     private fun getColorStatusKey(featureId: Long) = "widget_color_status_$featureId"
+
+    private fun replaceTemplatePlaceholders(
+        template: String,
+        trackerName: String,
+        timeStr: String
+    ): String {
+        return template
+            .replace("{{name}}", trackerName)
+            .replace("{{time}}", timeStr)
+    }
 }
 

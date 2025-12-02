@@ -332,6 +332,8 @@ internal class DataInteractorImpl @Inject constructor(
 
     override suspend fun deleteDataPoint(dataPoint: DataPoint) = withContext(io) {
         dao.deleteDataPoint(dataPoint.toEntity())
+        // Trigger widget update to recalculate elapsed time
+        notificationService.triggerWidgetUpdate(dataPoint.featureId)
         dataUpdateEvents.emit(DataUpdateType.DataPoint(dataPoint.featureId))
         val graphsNeedingUpdate = dependencyAnalyserProvider.create()
             .getDependentGraphs(dataPoint.featureId)

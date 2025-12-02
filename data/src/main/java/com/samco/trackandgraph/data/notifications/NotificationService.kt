@@ -23,6 +23,8 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import android.Manifest
+import android.appwidget.AppWidgetManager
+import android.content.Intent
 import com.samco.trackandgraph.data.database.TrackAndGraphDatabaseDao
 import com.samco.trackandgraph.data.database.dto.DataPoint
 import com.samco.trackandgraph.data.database.dto.Tracker
@@ -34,6 +36,7 @@ import javax.inject.Inject
 
 internal interface NotificationService {
     suspend fun checkAndNotifyThreshold(dataPoint: DataPoint, tracker: Tracker)
+    fun triggerWidgetUpdate(featureId: Long)
 }
 
 internal class NotificationServiceImpl @Inject constructor(
@@ -84,6 +87,7 @@ internal class NotificationServiceImpl @Inject constructor(
                     dataPoint
                 )
             }
+            triggerWidgetUpdate(tracker.featureId)
         } catch (e: Exception) {
             Timber.e(e, "Error checking thresholds for tracker: ${'$'}{tracker.name}")
         }
@@ -138,6 +142,13 @@ internal class NotificationServiceImpl @Inject constructor(
         }
     }
 
+    override fun triggerWidgetUpdate(featureId: Long) {
+        val intent = Intent().apply {
+            setClassName(context, "com.samco.trackandgraph.base.service.TrackWidgetProvider")
+            putExtra("UPDATE_FEATURE_ID", featureId)
+        }
+        context.sendBroadcast(intent)
+    }
     private fun replaceTemplatePlaceholders(
         template: String,
         tracker: Tracker,
