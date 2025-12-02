@@ -68,7 +68,13 @@ internal data class DisplayTracker(
     val warningThreshold: Double,
 
     @ColumnInfo(name = "error_threshold")
-    val errorThreshold: Double
+    val errorThreshold: Double,
+
+    @ColumnInfo(name = "notification_title_template")
+    val notificationTitleTemplate: String? = null,
+
+    @ColumnInfo(name = "notification_body_template")
+    val notificationBodyTemplate: String? = null
 ) {
     fun toDto() = DisplayTracker(
         id = id,
@@ -89,6 +95,8 @@ internal data class DisplayTracker(
         description = description,
         timerStartInstant = timerStartInstant,
         warningThreshold = warningThreshold,
-        errorThreshold = errorThreshold
+        errorThreshold = errorThreshold,
+        notificationTitleTemplate = notificationTitleTemplate,
+        notificationBodyTemplate = notificationBodyTemplate
     )
 }

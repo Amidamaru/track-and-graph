@@ -31,7 +31,7 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Service für Benachrichtigungen bei Widget-Schwellenwert-Übergängen
+ * Service für Benachrichtigungen bei Widget-Schwellenwert-Übergänge
  * Sendet Benachrichtigungen, wenn die Widget-Farbe wechselt (weiß -> gelb oder gelb -> rot)
  * basierend auf verstrichener Zeit (elapsed time)
  */
@@ -88,11 +88,19 @@ class WidgetThresholdNotificationService @Inject constructor(
         warningThreshold: Double,
         errorThreshold: Double,
         notificationTitleTemplate: String? = null,
-        notificationBodyTemplate: String? = null
+        notificationBodyTemplate: String? = null,
+        elapsedTime: String = "N/A",
+        trackerValue: Double? = null,
+        warningThresholdValue: Double? = null,
+        errorThresholdValue: Double? = null
     ) {
         try {
+            Timber.d("checkAndNotifyColorChange called for: $trackerName, titleTemplate=$notificationTitleTemplate, bodyTemplate=$notificationBodyTemplate")
+
             val currentColor = getColorStatus(lastTimestampMillis, warningThreshold, errorThreshold)
             val previousColor = getPreviousColorStatus(featureId)
+
+            Timber.d("Color change: $previousColor -> $currentColor")
 
             // Speichere die neue Farbe
             savePreviousColorStatus(featureId, currentColor)
@@ -101,14 +109,26 @@ class WidgetThresholdNotificationService @Inject constructor(
             if (previousColor != currentColor) {
                 when {
                     currentColor == ColorStatus.RED && previousColor == ColorStatus.YELLOW -> {
-                        sendErrorThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
+                        Timber.d("Sending ERROR notification (YELLOW->RED)")
+                        sendErrorThresholdNotification(
+                            featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate,
+                            elapsedTime, trackerValue, warningThresholdValue, errorThresholdValue
+                        )
                     }
                     currentColor == ColorStatus.RED && previousColor == ColorStatus.WHITE -> {
                         // Direkter Sprung zu ROT (seltener Fall)
-                        sendErrorThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
+                        Timber.d("Sending ERROR notification (WHITE->RED)")
+                        sendErrorThresholdNotification(
+                            featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate,
+                            elapsedTime, trackerValue, warningThresholdValue, errorThresholdValue
+                        )
                     }
                     currentColor == ColorStatus.YELLOW && previousColor == ColorStatus.WHITE -> {
-                        sendWarningThresholdNotification(featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate)
+                        Timber.d("Sending WARNING notification (WHITE->YELLOW)")
+                        sendWarningThresholdNotification(
+                            featureId, trackerName, notificationTitleTemplate, notificationBodyTemplate,
+                            elapsedTime, trackerValue, warningThresholdValue, errorThresholdValue
+                        )
                     }
                     // Falls Farbe zurückgeht (Datenpunkt wurde gelöscht/bearbeitet)
                     currentColor == ColorStatus.WHITE && previousColor != ColorStatus.WHITE -> {
@@ -119,6 +139,8 @@ class WidgetThresholdNotificationService @Inject constructor(
                         // Farbe geht von rot zu gelb zurück - keine Benachrichtigung
                     }
                 }
+            } else {
+                Timber.d("No color change: $currentColor == $previousColor")
             }
         } catch (e: Exception) {
             Timber.e(e, "Error checking widget color change for feature: $featureId")
@@ -129,9 +151,15 @@ class WidgetThresholdNotificationService @Inject constructor(
         featureId: Long,
         trackerName: String,
         notificationTitleTemplate: String? = null,
-        notificationBodyTemplate: String? = null
+        notificationBodyTemplate: String? = null,
+        elapsedTime: String = "N/A",
+        trackerValue: Double? = null,
+        warningThresholdValue: Double? = null,
+        errorThresholdValue: Double? = null
     ) {
         try {
+            Timber.d("sendErrorThresholdNotification: titleTemplate=$notificationTitleTemplate, bodyTemplate=$notificationBodyTemplate")
+
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
                 as? NotificationManager ?: return
 
@@ -146,25 +174,33 @@ class WidgetThresholdNotificationService @Inject constructor(
                 }
             }
 
-            val notificationId = (NOTIFICATION_BASE_ID + featureId.toInt()).toInt()
+            val notificationId = (NOTIFICATION_BASE_ID + featureId).toInt()
             val timeStr = Instant.now().toString().substring(11, 19) // HH:mm:ss
 
             val title = if (notificationTitleTemplate != null) {
-                replaceTemplatePlaceholders(notificationTitleTemplate, trackerName, timeStr)
+                replaceTemplatePlaceholders(
+                    notificationTitleTemplate, trackerName, timeStr, elapsedTime,
+                    trackerValue, warningThresholdValue, errorThresholdValue
+                )
             } else {
                 "⚠️ Fehler-Schwelle überschritten"
             }
 
             val bodyText = if (notificationBodyTemplate != null) {
-                replaceTemplatePlaceholders(notificationBodyTemplate, trackerName, timeStr)
+                replaceTemplatePlaceholders(
+                    notificationBodyTemplate, trackerName, timeStr, elapsedTime,
+                    trackerValue, warningThresholdValue, errorThresholdValue
+                )
             } else {
                 "Tracker: $trackerName\nZeit: $timeStr\nDie Fehler-Schwelle wurde überschritten"
             }
 
+            Timber.d("Final title: $title, bodyText: $bodyText")
+
             val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.warning_icon)
                 .setContentTitle(title)
-                .setContentText("$trackerName • $timeStr")
+                .setContentText(bodyText)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
@@ -180,7 +216,11 @@ class WidgetThresholdNotificationService @Inject constructor(
         featureId: Long,
         trackerName: String,
         notificationTitleTemplate: String? = null,
-        notificationBodyTemplate: String? = null
+        notificationBodyTemplate: String? = null,
+        elapsedTime: String = "N/A",
+        trackerValue: Double? = null,
+        warningThresholdValue: Double? = null,
+        errorThresholdValue: Double? = null
     ) {
         try {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE)
@@ -197,17 +237,23 @@ class WidgetThresholdNotificationService @Inject constructor(
                 }
             }
 
-            val notificationId = (NOTIFICATION_BASE_ID + featureId.toInt()).toInt()
+            val notificationId = (NOTIFICATION_BASE_ID + featureId).toInt()
             val timeStr = Instant.now().toString().substring(11, 19) // HH:mm:ss
 
             val title = if (notificationTitleTemplate != null) {
-                replaceTemplatePlaceholders(notificationTitleTemplate, trackerName, timeStr)
+                replaceTemplatePlaceholders(
+                    notificationTitleTemplate, trackerName, timeStr, elapsedTime,
+                    trackerValue, warningThresholdValue, errorThresholdValue
+                )
             } else {
                 "⚠️ Warn-Schwelle überschritten"
             }
 
             val bodyText = if (notificationBodyTemplate != null) {
-                replaceTemplatePlaceholders(notificationBodyTemplate, trackerName, timeStr)
+                replaceTemplatePlaceholders(
+                    notificationBodyTemplate, trackerName, timeStr, elapsedTime,
+                    trackerValue, warningThresholdValue, errorThresholdValue
+                )
             } else {
                 "Tracker: $trackerName\nZeit: $timeStr\nDie Warn-Schwelle wurde überschritten"
             }
@@ -215,7 +261,7 @@ class WidgetThresholdNotificationService @Inject constructor(
             val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
                 .setSmallIcon(R.drawable.warning_icon)
                 .setContentTitle(title)
-                .setContentText("$trackerName • $timeStr")
+                .setContentText(bodyText)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
@@ -243,6 +289,7 @@ class WidgetThresholdNotificationService @Inject constructor(
         }
     }
 
+
     /**
      * Speichere den aktuellen Farbstatus für einen Tracker
      */
@@ -269,11 +316,19 @@ class WidgetThresholdNotificationService @Inject constructor(
     private fun replaceTemplatePlaceholders(
         template: String,
         trackerName: String,
-        timeStr: String
+        timeStr: String,
+        elapsedTime: String,
+        trackerValue: Double? = null,
+        warningThresholdValue: Double? = null,
+        errorThresholdValue: Double? = null
     ): String {
         return template
             .replace("{{name}}", trackerName)
             .replace("{{time}}", timeStr)
+            .replace("{{elapsed}}", elapsedTime)
+            .replace("{{value}}", trackerValue?.toString() ?: "N/A")
+            .replace("{{warningThreshold}}", warningThresholdValue?.toString() ?: "N/A")
+            .replace("{{errorThreshold}}", errorThresholdValue?.toString() ?: "N/A")
     }
 }
 

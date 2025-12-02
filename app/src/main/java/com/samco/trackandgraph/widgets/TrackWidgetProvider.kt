@@ -35,6 +35,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.appwidget.updateAll
+import com.samco.trackandgraph.data.database.dto.DisplayTracker
 import com.samco.trackandgraph.data.interactor.DataInteractor
 import com.samco.trackandgraph.timers.TimerServiceInteractor
 import com.samco.trackandgraph.widgets.TrackWidgetGlance
@@ -52,6 +53,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.runBlocking
+import org.threeten.bp.Duration
+import org.threeten.bp.Instant
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -145,6 +148,10 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
 
         // Prüfe auf Farbwechsel und sende Benachrichtigung wenn nötig
         if (tracker != null) {
+            // Calculate elapsed time for the template
+            val elapsedTime = calculateElapsedTime(tracker)
+
+            Timber.d("Widget: Calling checkAndNotifyColorChange for tracker=${tracker.name}, titleTemplate=${tracker.notificationTitleTemplate}, bodyTemplate=${tracker.notificationBodyTemplate}, elapsedTime=$elapsedTime")
             widgetNotificationService.checkAndNotifyColorChange(
                 featureId = featureId,
                 trackerName = tracker.name,
@@ -152,7 +159,8 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
                 warningThreshold = tracker.warningThreshold,
                 errorThreshold = tracker.errorThreshold,
                 notificationTitleTemplate = tracker.notificationTitleTemplate,
-                notificationBodyTemplate = tracker.notificationBodyTemplate
+                notificationBodyTemplate = tracker.notificationBodyTemplate,
+                elapsedTime = elapsedTime
             )
         }
     }
@@ -194,6 +202,35 @@ class TrackWidgetProvider : GlanceAppWidgetReceiver() {
         if (widgetsToUpdate.isNotEmpty()) {
             // Update widgets to show broken state (can't actually delete from launcher)
             onUpdate(context, appWidgetManager, widgetsToUpdate.toIntArray())
+        }
+    }
+
+    private fun calculateElapsedTime(tracker: DisplayTracker): String {
+        return try {
+            val timestamp = tracker.timestamp
+            if (timestamp == null) {
+                return "N/A"
+            }
+
+            val lastInstant = timestamp.toInstant()
+            val now = Instant.now()
+            val duration = Duration.between(lastInstant, now)
+
+            // Format as human-readable string according to requirements:
+            // - if < 1day: show only hours (no minutes)
+            // - if >= 1day: show days + hours (no minutes)
+            val totalHours = duration.toHours()
+            val days = totalHours / 24
+            val remainingHours = totalHours % 24
+
+            return when {
+                days > 0L -> "${days}d ${remainingHours}h"
+                totalHours > 0L -> "${totalHours}h"
+                else -> "< 1h"
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Error calculating elapsed time for tracker: ${tracker.name}")
+            "N/A"
         }
     }
 }

@@ -183,7 +183,7 @@ internal class NotificationServiceImpl @Inject constructor(
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon) // Entfernt Warn-Dreieck, nimmt App-Icon
             .setContentTitle(title)
-            .setContentText("${tracker.name} • $timeStr")
+            .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
@@ -206,7 +206,7 @@ internal class NotificationServiceImpl @Inject constructor(
         val notification = NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon)
             .setContentTitle(title)
-            .setContentText("${tracker.name} • $timeStr")
+            .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setAutoCancel(true)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))

@@ -89,6 +89,8 @@ private const val getDisplayTrackersQuery = """
         trackers_table.default_label as default_label,
         trackers_table.warning_threshold as warning_threshold,
         trackers_table.error_threshold as error_threshold,
+        trackers_table.notification_title_template as notification_title_template,
+        trackers_table.notification_body_template as notification_body_template,
         last_epoch_milli,
         last_utc_offset_sec,
         start_instant 
